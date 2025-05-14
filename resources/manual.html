@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: "Microsoft YaHei", sans-serif; line-height: 1.6; padding: 10px; }
+        h2 { color: #2980b9; border-bottom: 1px solid #3498db; padding-bottom: 5px;}
+        h3 { color: #2c3e50; margin-top: 15px;}
+        p, li { margin-bottom: 8px; }
+        ul, ol { margin-left: 20px; }
+        code { background-color: #f0f0f0; padding: 2px 4px; border-radius: 3px; font-family: Consolas, monospace; }
+    </style>
+</head>
+<body>
+    <h2>使用说明</h2>
+    <p>欢迎使用 问卷填写助手 Pro！</p>
+    <h3>主要功能步骤：</h3>
+    <ol>
+        <li><b>基本设置 (菜单栏):</b>
+            <ul>
+                <li><b>驱动路径：</b>如果您的 <code>msedgedriver.exe</code> 不在系统PATH中，请在此指定其完整路径。</li>
+                <li><b>代理设置：</b>如果需要通过代理服务器访问问卷，请填写代理地址 (格式: <code>ip:port</code>)。</li>
+                <li><b>默认填写参数：</b>设置默认的并行线程数和目标填写总份数。</li>
+                <li><b>无头模式：</b>勾选则浏览器在后台静默运行，不显示界面。</li>
+                <li><b>界面主题：</b>选择您喜欢的界面颜色主题，所选主题会自动保存。</li>
+            </ul>
+        </li>
+        <li><b>问卷配置 (主界面):</b>
+            <ul>
+                <li><b>输入问卷URL：</b>将需要填写的问卷链接粘贴到输入框。</li>
+                <li><b>加载问卷：</b>点击“加载问卷”按钮，程序会自动解析问卷结构。请耐心等待解析完成。</li>
+                <li><b>配置答案：</b>解析成功后，问卷的每个问题会显示在下方。
+                    <ul>
+                        <li><b>单选题/量表题/下拉题:</b> 为每个选项输入权重值 (整数，用逗号隔开，如 <code>1,2,0</code>)。权重越大概率越高。</li>
+                        <li><b>多选题:</b> 为每个选项输入被选中的百分比概率 (0-100的整数，用逗号隔开，如 <code>100,50,0</code>)。</li>
+                        <li><b>填空题:</b> 直接输入您希望填写的文本内容。</li>
+                        <li><b>滑块题:</b> 输入一个具体的数值 (通常1-100)，或用 <code>值1,值2:权重1,权重2</code> 格式设置多值随机。</li>
+                        <li><b>排序题(目前功能暂不完善):</b> 程序会自动进行随机排序，无需额外配置。</li>
+                        <li><b>矩阵题(目前功能暂不完善):</b> 为每个子问题（行）的选项设置权重，规则同单选题。</li>
+                    </ul>
+                </li>
+            </ul>
+        </li>
+        <li><b>开始填写 (菜单栏 或 主界面按钮):</b>
+            <ul>
+                <li>配置好问卷后，点击菜单栏的“开始填写”或直接在“填写问卷”面板点击“开始填写”按钮。</li>
+                <li>程序会根据“基本设置”中的线程数和份数启动填写任务。</li>
+                <li>您可以实时查看每个线程的进度、状态和日志信息。</li>
+                <li>可以暂停、继续或停止所有填写任务。</li>
+            </ul>
+        </li>
+    </ol>
+    <h3>注意事项：</h3>
+    <ul>
+        <li>请确保您的网络连接稳定。</li>
+        <li>部分复杂的问卷或带有高强度人机验证的问卷可能无法完美自动化，或需要人工介入。</li>
+        <li>请合理使用本工具，遵守相关网站的用户协议和法律法规。</li>
+    </ul>
+    <p>祝您使用愉快！</p>
+</body>
+</html>
+
+
+
