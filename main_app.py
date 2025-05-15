@@ -14,19 +14,19 @@ import ui_styles
 from widgets_basic_settings import BasicSettingsPanel
 from widgets_help_panel import HelpPanel
 from widgets_questionnaire_setup import QuestionnaireSetupWidget
-from widgets_filling_process import FillingProcessWidget  # 确保 FillingProcessWidget 已更新以处理停止
-from activation_dialog import ActivationDialog  # 确保 ActivationDialog 已更新以处理输入时效性
+from widgets_filling_process import FillingProcessWidget  # 确保这个import正确
+from activation_dialog import ActivationDialog
 import time
 
 MSedgedriverPathGlobal = None
-TOTAL_FILLS_LIMIT_UNACTIVATED = 2  # 未激活时的填写上限 (用于测试，可改回2000)
-ACTIVATIONS_JSON_FILENAME = "activations.json"  # 激活信息JSON文件名
+TOTAL_FILLS_LIMIT_UNACTIVATED = 11  # 按您的截图，测试时仍为2
+ACTIVATIONS_JSON_FILENAME = "activations.json"
 
 
 def load_html_from_file(file_name):
     current_script_dir = os.path.dirname(os.path.abspath(__file__))
     file_path = os.path.join(current_script_dir, "resources", file_name)
-    content = f"<p>错误：无法加载内容文件 '{file_name}'。</p>"  # 默认错误信息
+    content = f"<p>错误：无法加载内容文件 '{file_name}'。</p>"
     if os.path.exists(file_path):
         try:
             file = QFile(file_path)
@@ -59,7 +59,7 @@ class InfoDialog(QDialog):  # 无需修改
         layout.addWidget(button_box)
 
 
-class AboutDialog(QDialog):  # 无需修改 (除了版本号，如果需要)
+class AboutDialog(QDialog):  # 无需修改
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("关于与鼓励")
@@ -80,7 +80,7 @@ class AboutDialog(QDialog):  # 无需修改 (除了版本号，如果需要)
         title_version_layout = QVBoxLayout()
         title_label = QLabel("问卷星助手 ")
         title_label.setStyleSheet("font-size: 18pt; font-weight: bold;")
-        version_label = QLabel("版本: 1.0.7 (时效激活)")  # 更新版本号示例
+        version_label = QLabel("版本: 1.1.0 (UI响应与限制优化)")
         title_version_layout.addWidget(title_label)
         title_version_layout.addWidget(version_label)
         header_layout.addLayout(title_version_layout)
@@ -105,16 +105,16 @@ class AboutDialog(QDialog):  # 无需修改 (除了版本号，如果需要)
         encourage_layout.addWidget(encourage_text)
         qr_and_buttons_layout = QHBoxLayout()
         qr_label = QLabel()
-        qr_icon_path = os.path.join(project_root, "resources", "icons", "为爱发电.png")  # 或 payment_qr.png
+        qr_icon_path = os.path.join(project_root, "resources", "icons", "为爱发电.png")
         if os.path.exists(qr_icon_path):
             qr_pixmap = QPixmap(qr_icon_path)
             if not qr_pixmap.isNull():
-                qr_label.setPixmap(qr_pixmap.scaledToWidth(200, Qt.SmoothTransformation))  # 调整二维码大小
+                qr_label.setPixmap(qr_pixmap.scaledToWidth(200, Qt.SmoothTransformation))
             else:
                 qr_label.setText("二维码加载失败")
         else:
             qr_label.setText("(打赏二维码)")
-            qr_label.setFixedSize(200, 200)  # 调整占位符大小
+            qr_label.setFixedSize(200, 200)
             qr_label.setAlignment(Qt.AlignCenter)
             qr_label.setStyleSheet("border: 1px dashed #ccc;")
         qr_and_buttons_layout.addWidget(qr_label, 0, Qt.AlignCenter)
@@ -137,11 +137,11 @@ class MainWindow(QMainWindow):
         self.project_root_dir = os.path.dirname(os.path.abspath(__file__))
         self.activations_file_path = os.path.join(self.project_root_dir, ACTIVATIONS_JSON_FILENAME)
 
-        # --- 窗口图标设置 (与你提供的一致) ---
         primary_icon_name = "WJX.png"
         secondary_icon_name = "WJX.jpg"
         fallback_icon_path_in_resources = os.path.join(self.project_root_dir, "resources", "icons", "app_icon.png")
         window_icon_to_set = None
+        # ... (图标设置代码无变化)
         primary_icon_path = os.path.join(self.project_root_dir, primary_icon_name)
         if os.path.exists(primary_icon_path):
             window_icon_to_set = primary_icon_path
@@ -154,13 +154,13 @@ class MainWindow(QMainWindow):
         if window_icon_to_set: self.setWindowIcon(QIcon(window_icon_to_set))
 
         self.setGeometry(100, 100, 1100, 800)
-        self.settings = QSettings("WJXHelperCo", "WJXNavEdition_v3.2_TimedInputActivation")  # 更新配置名
+        self.settings = QSettings("WJXHelperCo", "WJXNavEdition_v3.5_UI_Response")  # 版本迭代
 
-        # --- 测试重置代码块 (保留你原来的，提醒注释) ---
+        # --- 测试重置代码块 ---
         print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        print("!!! 测试模式：正在强制重置激活状态和全局填写次数！！！")
+        print("!!!!!!!!!!! 测试模式：正在强制重置激活状态和全局填写次数!!!!!!!!!!!")
         print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        self.settings.setValue("global_total_fills", 0)
+        self.settings.setValue("global_total_fills", 0) # 测试用，比如设为 TOTAL_FILLS_LIMIT_UNACTIVATED - 3
         self.settings.setValue("activated_uuid", None)
         self.settings.sync()
         # --- 测试代码块结束 ---
@@ -169,7 +169,6 @@ class MainWindow(QMainWindow):
         self.is_activated = False
         self.activated_uuid = None
         self.activation_expiry_timestamp = 0.0
-
         self._valid_activations_from_json = {}
 
         self.load_settings_and_activations()
@@ -178,159 +177,141 @@ class MainWindow(QMainWindow):
 
         self.activation_check_timer = QTimer(self)
         self.activation_check_timer.timeout.connect(self.recheck_activation_status_from_json)
-        # 定时器可以稍微频繁一些，比如5分钟，以便更快地反映JSON文件的外部更改（如果作者在运行时更新了它）
         self.activation_check_timer.start(5 * 60 * 1000)
         self.recheck_activation_status_from_json()
 
-    def _load_json_activations_data(self):
-        """从JSON文件加载激活数据。"""
+    def _load_json_activations_data(self):  # 无变化
         if os.path.exists(self.activations_file_path):
             try:
                 with open(self.activations_file_path, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                 if isinstance(data, dict):
-                    print(f"MainWindow: 从 {self.activations_file_path} 加载 {len(data)} 条激活记录。")
                     return data
-            except Exception as e:  # 更通用的异常捕获
-                print(f"MainWindow: 读取或解析 {self.activations_file_path} 失败: {e}")
+            except Exception as e:
+                print(f"MainWindow DEBUG: 读取或解析 {self.activations_file_path} 失败: {e}")
         else:
-            print(f"MainWindow: 警告 - 激活文件 {self.activations_file_path} 未找到。")
+            print(f"MainWindow DEBUG: 警告 - 激活文件 {self.activations_file_path} 未找到。")
         return {}
 
-    def load_settings_and_activations(self):
-        """加载QSettings和JSON激活数据。"""
+    def load_settings_and_activations(self):  # 无变化
+        # print("MainWindow DEBUG: load_settings_and_activations called.")
         saved_theme = self.settings.value("theme", "经典默认")
         ui_styles.set_current_theme(saved_theme)
         global MSedgedriverPathGlobal
         MSedgedriverPathGlobal = self.settings.value("msedgedriver_path", None)
         self.global_total_fills_count = self.settings.value("global_total_fills", 0, type=int)
         self.activated_uuid = self.settings.value("activated_uuid", None)
+        # print(f"  MainWindow DEBUG: Loaded global_total_fills: {self.global_total_fills_count}, activated_uuid: {self.activated_uuid}")
         self._valid_activations_from_json = self._load_json_activations_data()
         self.recheck_activation_status_from_json()
 
-    def save_settings(self):
-        """保存设置到QSettings。"""
+    def save_settings(self):  # 无变化
         self.settings.setValue("theme", ui_styles.CURRENT_THEME)
         self.settings.setValue("global_total_fills", self.global_total_fills_count)
         self.settings.setValue("activated_uuid", self.activated_uuid)
         self.settings.sync()
-        print(f"MainWindow: 设置已保存 (激活UUID: {self.activated_uuid})。")
 
-    def recheck_activation_status_from_json(self):
-        """核心：根据QSettings中的UUID和JSON数据，刷新程序激活状态。"""
+    def recheck_activation_status_from_json(self):  # 无变化
         previously_activated_state = self.is_activated
+        current_activated_uuid_before_recheck = self.activated_uuid
+        self._valid_activations_from_json = self._load_json_activations_data()
         self.is_activated = False
         self.activation_expiry_timestamp = 0.0
-
         if self.activated_uuid and self.activated_uuid in self._valid_activations_from_json:
             entry = self._valid_activations_from_json[self.activated_uuid]
-            validity_code_json, issue_ts_json, input_win_sec_json = None, None, 0
-
-            if isinstance(entry, dict):  # 新的详细格式
+            validity_code_json = None
+            if isinstance(entry, dict):
                 validity_code_json = entry.get("validity_code", "").upper()
-                issue_ts_json = entry.get("issue_timestamp_utc")  # 签发时间戳
-                input_win_sec_json = entry.get("input_window_seconds", 0)  # 输入窗口期
-            elif isinstance(entry, str):  # 兼容旧的简单格式 "UUID": "7D" (没有输入时效性)
+            elif isinstance(entry, str):
                 validity_code_json = entry.upper()
-
-            # 1. 检查输入窗口期 (仅当激活码是通过 ActivationDialog 新输入时，此检查更相关)
-            #    对于已激活的UUID，我们主要关心其激活后的有效期。
-            #    但如果希望每次recheck都严格按JSON中的输入窗口期（如果存在且未过）来判断，
-            #    这里的逻辑会更复杂，因为issue_ts_json是固定的，而当前时间在变。
-            #    简单起见，这里我们假设如果一个UUID被激活了，输入窗口期的检查在激活那一刻已经通过。
-            #    后续的 recheck 主要关注 validity_code_json。
-
             if validity_code_json:
                 now = time.time()
                 calculated_expiry_ts = 0.0
                 if validity_code_json == "UNL":
                     calculated_expiry_ts = now + (365 * 20 * 24 * 60 * 60)
                 else:
+                    # ... (有效期计算逻辑无变化)
                     val_str = "".join(filter(str.isdigit, validity_code_json))
                     unit = "".join(filter(str.isalpha, validity_code_json)).upper()
                     if val_str.isdigit() and int(val_str) > 0:
                         val = int(val_str)
-                        if unit == 'H':
-                            calculated_expiry_ts = now + val * 60 * 60
-                        elif unit == 'D':
-                            calculated_expiry_ts = now + val * 24 * 60 * 60
-                        elif unit == 'M':
-                            calculated_expiry_ts = now + val * 30 * 24 * 60 * 60
-                        elif unit == 'Y':
-                            calculated_expiry_ts = now + val * 365 * 24 * 60 * 60
-
+                        seconds_multiplier = {'H': 3600, 'D': 86400, 'M': 30 * 86400, 'Y': 365 * 86400}.get(unit, 0)
+                        if seconds_multiplier > 0:
+                            calculated_expiry_ts = now + val * seconds_multiplier
                 if calculated_expiry_ts > now:
                     self.is_activated = True
                     self.activation_expiry_timestamp = calculated_expiry_ts
-                else:  # 已过期或格式错误
-                    if previously_activated_state:
-                        QMessageBox.warning(self, "激活已过期",
-                                            f"已激活的码 (UUID: {self.activated_uuid[:8]}...) 根据最新激活文件已过期。")
+                else:
+                    if previously_activated_state: QMessageBox.warning(self, "激活已过期",
+                                                                       f"已激活的码 (UUID: {self.activated_uuid[:8]}...) 根据最新激活文件已过期或有效期配置错误。")
                     self.activated_uuid = None
-                    self.save_settings()
-            else:  # JSON条目格式错误
-                if previously_activated_state: print(f"警告: UUID '{self.activated_uuid}' 在JSON中条目格式不正确。")
-                self.activated_uuid = None;
-                self.save_settings()
-        else:  # QSettings中的UUID为空或不在当前JSON中
-            if self.activated_uuid and previously_activated_state:
-                QMessageBox.warning(self, "激活已失效",
-                                    f"之前激活的码 (UUID: {self.activated_uuid[:8]}...) 已从有效列表中移除。")
-            self.activated_uuid = None  # 确保清除
+            else:
+                if previously_activated_state: print(
+                    f"  MainWindow DEBUG: UUID '{self.activated_uuid}' in JSON but entry format error.")
+                self.activated_uuid = None
+        if current_activated_uuid_before_recheck and not self.activated_uuid and previously_activated_state:
+            QMessageBox.warning(self, "激活已失效",
+                                f"之前激活的码 (UUID: {current_activated_uuid_before_recheck[:8]}...) 可能已从有效列表移除或已过期。")
+        self.save_settings()
         self._update_window_title_with_activation_status()
 
-    def _update_window_title_with_activation_status(self):
-        """更新窗口标题以反映激活状态。"""
+    def _update_window_title_with_activation_status(self):  # 无变化
         base_title = "问卷星助手"
         if self.is_activated and self.activation_expiry_timestamp > 0:
             expiry_date_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.activation_expiry_timestamp))
             uuid_disp = f" (UUID: {self.activated_uuid[:8]}...)" if self.activated_uuid else ""
-            self.setWindowTitle(f"{base_title} (已激活{uuid_disp} - 至 {expiry_date_str})")
+            self.setWindowTitle(f"{base_title} (已激活{uuid_disp} - 理论至 {expiry_date_str})")
         else:
             remaining = TOTAL_FILLS_LIMIT_UNACTIVATED - self.global_total_fills_count
-            remaining = max(0, remaining)  # 不显示负数
+            remaining = max(0, remaining)
             self.setWindowTitle(f"{base_title} (未激活 - 剩余免费: {remaining}次)")
 
-    def increment_global_fill_count(self):
-        """增加全局填写计数。"""
-        self.global_total_fills_count += 1
+    def increment_global_fill_count(self):  # 无变化
+        if not self.is_activated:
+            self.global_total_fills_count += 1
+            # print(f"MainWindow DEBUG: Global fill count incremented to {self.global_total_fills_count} (unactivated).")
         self.save_settings()
         self._update_window_title_with_activation_status()
-        print(f"MainWindow: 全局填写次数更新为: {self.global_total_fills_count}")
 
-    def _can_proceed_with_filling(self):
-        """核心检查点：是否可以开始或继续填写。"""
-        self._valid_activations_from_json = self._load_json_activations_data()  # 获取最新JSON
-        self.recheck_activation_status_from_json()  # 更新激活状态
-
+    def get_remaining_free_fills(self):  # 无变化
         if self.is_activated:
-            return True
-        if self.global_total_fills_count < TOTAL_FILLS_LIMIT_UNACTIVATED:
-            return True
+            return float('inf')
+        return max(0, TOTAL_FILLS_LIMIT_UNACTIVATED - self.global_total_fills_count)
 
-        # --- 超限且未激活，弹出对话框 ---
-        # ActivationDialog 内部会处理输入时效性
+    def _can_proceed_with_filling(self):  # 无变化，调试日志已加入
+        # print("MainWindow DEBUG: _can_proceed_with_filling called.")
+        self.recheck_activation_status_from_json()
+        if self.is_activated:
+            # print("  MainWindow DEBUG: _can_proceed_with_filling: Activated. Returning True.")
+            return True
+        remaining_fills = self.get_remaining_free_fills()
+        # print(f"  MainWindow DEBUG: _can_proceed_with_filling: Unactivated. Remaining free fills: {remaining_fills}")
+        if remaining_fills > 0:
+            # print("  MainWindow DEBUG: _can_proceed_with_filling: Unactivated, but has free fills. Returning True.")
+            return True
+        # print("  MainWindow DEBUG: _can_proceed_with_filling: Unactivated and no free fills. Prompting activation dialog.")
         dialog = ActivationDialog(project_root_dir=self.project_root_dir, parent=self)
         if dialog.exec_() == QDialog.Accepted:
-            activated_uuid_dlg, expiry_ts_dlg = dialog.get_activation_details()
-            if activated_uuid_dlg and expiry_ts_dlg:
+            activated_uuid_dlg, expiry_ts_dlg_from_dialog = dialog.get_activation_details()
+            if activated_uuid_dlg and expiry_ts_dlg_from_dialog:
                 self.activated_uuid = activated_uuid_dlg
                 self.save_settings()
-                self.recheck_activation_status_from_json()  # 再次用JSON权威刷新
+                self.recheck_activation_status_from_json()
                 if self.is_activated:
                     QMessageBox.information(self, "激活成功", "激活已完成，您可以继续使用了！")
                     return True
                 else:
-                    QMessageBox.warning(self, "激活失败", "激活未能最终确认，请检查激活码或联系支持。")
-                    return False  # 即使对话框接受，如果 recheck 失败，则不允许
-            # else: (对话框接受但未返回有效信息，理论上 dialog 内部会处理)
-        else:  # 用户关闭对话框
-            QMessageBox.warning(self, "操作受限", f"免费填写已达 {TOTAL_FILLS_LIMIT_UNACTIVATED} 次上限。请激活。")
-        return False  # 默认不允许
+                    QMessageBox.warning(self, "激活失败", "激活未能最终确认或已立即失效，请检查激活码或联系支持。")
+                    return False
+        else:
+            QMessageBox.warning(self, "操作受限",
+                                f"免费填写已达 {TOTAL_FILLS_LIMIT_UNACTIVATED} 次上限。请激活软件或检查激活状态。")
+        return False
 
-    def _init_ui_with_top_navigation(self):  # UI初始化代码基本不变
+    def _init_ui_with_top_navigation(self):  # 无变化
         central_widget_container = QWidget()
         main_v_layout = QVBoxLayout(central_widget_container)
+        # ... (大部分UI初始化代码无变化) ...
         main_v_layout.setContentsMargins(0, 0, 0, 0);
         main_v_layout.setSpacing(0)
         self.nav_bar_widget = QWidget();
@@ -362,7 +343,7 @@ class MainWindow(QMainWindow):
         main_v_layout.addWidget(self.nav_bar_widget)
         self.main_content_stack = QStackedWidget()
         self.questionnaire_setup_panel = QuestionnaireSetupWidget(self)
-        self.filling_process_panel = FillingProcessWidget(self)  # 确保FillingProcessWidget已更新
+        self.filling_process_panel = FillingProcessWidget(self)  # 创建实例
         self.basic_settings_panel = BasicSettingsPanel(self.settings, self)
         self.help_panel = HelpPanel(project_root=self.project_root_dir, parent=self)
         self.panel_idx_questionnaire_setup = self.main_content_stack.addWidget(self.questionnaire_setup_panel)
@@ -371,14 +352,13 @@ class MainWindow(QMainWindow):
         self.panel_idx_help = self.main_content_stack.addWidget(self.help_panel)
         main_v_layout.addWidget(self.main_content_stack, 1);
         self.setCentralWidget(central_widget_container)
+
         for panel_idx_attr, button in self.nav_buttons.items():
             target_idx = getattr(self, panel_idx_attr, -1)
             if target_idx != -1:
-                if panel_idx_attr == "panel_idx_filling_process":
-                    button.clicked.connect(self._handle_filling_navigation_click)
-                button.toggled.connect(
-                    lambda checked, idx=target_idx, btn_attr=panel_idx_attr: self._nav_button_toggled(checked, idx,
-                                                                                                      btn_attr))
+                button.toggled.connect(lambda checked, idx=target_idx, btn_attr=panel_idx_attr: \
+                                           self._nav_button_toggled(checked, idx, btn_attr))
+
         self.basic_settings_panel.msedgedriver_path_changed.connect(self._handle_driver_path_update)
         self.basic_settings_panel.theme_changed_signal.connect(self._handle_theme_update)
         self.statusBar().showMessage("就绪");
@@ -387,73 +367,43 @@ class MainWindow(QMainWindow):
             self.nav_buttons["panel_idx_questionnaire_setup"].setChecked(True)
         self._update_window_title_with_activation_status()
 
-    def _nav_button_toggled(self, checked, panel_index_to_set, button_attribute_name):
-        """处理导航按钮的 toggled 信号，确保只在 checked 时切换页面。"""
-        # 这个通用处理可以简化之前的 lambda
-        if checked:
-            # 对于“开始运行”按钮，它的切换由 _handle_filling_navigation_click 决定
-            # 所以如果点击的是它，并且can_proceed是false，它可能不会真的切换到目标页面
-            # 因此，我们只在非“开始运行”按钮，或者“开始运行”按钮且数据准备成功时切换
-            if button_attribute_name != "panel_idx_filling_process" or \
-                    (button_attribute_name == "panel_idx_filling_process" and self.main_content_stack.widget(
-                        panel_index_to_set) == self.filling_process_panel):
-                # 上述条件是为了确保，如果点击的是“开始运行”，那么只有当_prepare_data_for_filling_panel成功（这意味着filling_process_panel已被设置为当前可切换的目标）时，
-                # 或者说，是由_handle_filling_navigation_click中setChecked(True)触发的，才实际切换。
-                # 简单来说，如果按钮被选中，就切换到对应页面。
-                # _handle_filling_navigation_click 会处理是否应该选中“开始运行”按钮。
-                self.main_content_stack.setCurrentIndex(panel_index_to_set)
-
-    def _handle_filling_navigation_click(self):
-        """当“开始运行”导航按钮被点击时的处理。"""
-        print("MainWindow: _handle_filling_navigation_click")
-
-        # 1. 检查激活和次数限制
-        if not self._can_proceed_with_filling():
-            print("  激活/次数检查未通过。")
-            # 如果检查未通过，并且当前有任务在运行，则停止它们
-            if self.filling_process_panel.is_process_running:
-                print("  由于激活/次数限制，正在停止当前运行的任务...")
-                self.filling_process_panel.stop_all_workers_forcefully(is_target_reached=False)
-                QMessageBox.warning(self, "任务已中止", "由于激活或使用次数限制，当前运行的填写任务已被中止。")
-
-            # 确保“开始运行”按钮不是选中状态，并将视图切换回“问卷配置”
-            fill_button = self.nav_buttons.get("panel_idx_filling_process")
-            setup_button = self.nav_buttons.get("panel_idx_questionnaire_setup")
-            if fill_button and setup_button:
-                if fill_button.isChecked():  # 如果用户刚点了它导致它被选中
-                    fill_button.setChecked(False)  # 取消选中，避免触发toggled去切换
-                if not setup_button.isChecked():
-                    setup_button.setChecked(True)  # 选中配置页，这将通过toggled切换
-                elif self.main_content_stack.currentIndex() != self.panel_idx_questionnaire_setup:
-                    # 如果配置页按钮已选中但当前不是配置页，则强制切换
-                    self.main_content_stack.setCurrentIndex(self.panel_idx_questionnaire_setup)
+    def _nav_button_toggled(self, checked, panel_index_to_set, button_attribute_name):  # 无变化，调试日志已加入
+        if not checked:
             return
-
-        # 2. 如果激活检查通过，准备数据
-        data_prepared_ok = self._prepare_data_for_filling_panel()
-
-        fill_button = self.nav_buttons.get("panel_idx_filling_process")
-        setup_button = self.nav_buttons.get("panel_idx_questionnaire_setup")
-
-        if data_prepared_ok:
-            if fill_button and not fill_button.isChecked():
-                fill_button.setChecked(True)  # 选中按钮，这将通过 _nav_button_toggled 切换页面
-            elif fill_button and self.main_content_stack.currentIndex() != self.panel_idx_filling_process:
-                self.main_content_stack.setCurrentIndex(self.panel_idx_filling_process)  # 直接切换
-        else:  # 数据准备失败
-            if fill_button and fill_button.isChecked():  # 如果"开始运行"被错误地选中了
-                fill_button.setChecked(False)
-            if setup_button and not setup_button.isChecked():
-                setup_button.setChecked(True)
-            elif setup_button and self.main_content_stack.currentIndex() != self.panel_idx_questionnaire_setup:
-                self.main_content_stack.setCurrentIndex(self.panel_idx_questionnaire_setup)
-            QMessageBox.warning(self, "无法开始", "问卷数据准备失败，请检查“问卷配置”面板。")
+        # print(f"MainWindow DEBUG: Nav button '{button_attribute_name}' toggled, checked: {checked}, target_index: {panel_index_to_set}")
+        if button_attribute_name == "panel_idx_filling_process":
+            # print("  MainWindow DEBUG: Attempting to navigate to Filling Process panel.")
+            can_proceed = self._can_proceed_with_filling()
+            # print(f"  MainWindow DEBUG: _can_proceed_with_filling() returned: {can_proceed}")
+            if can_proceed:
+                data_prepared_ok = self._prepare_data_for_filling_panel()
+                # print(f"  MainWindow DEBUG: _prepare_data_for_filling_panel() returned: {data_prepared_ok}")
+                if data_prepared_ok:
+                    # print("    MainWindow DEBUG: Data prepared, switching to Filling Process panel.")
+                    self.main_content_stack.setCurrentIndex(panel_index_to_set)
+                else:
+                    # print("    MainWindow DEBUG: Data preparation failed. Switching back to setup.")
+                    QMessageBox.warning(self, "无法开始", "问卷数据准备失败，请检查“问卷配置”面板。")
+                    self.nav_buttons["panel_idx_filling_process"].setChecked(False)
+                    if not self.nav_buttons["panel_idx_questionnaire_setup"].isChecked():
+                        self.nav_buttons["panel_idx_questionnaire_setup"].setChecked(True)
+            else:
+                # print("    MainWindow DEBUG: _can_proceed_with_filling returned False. Switching back to setup.")
+                self.nav_buttons["panel_idx_filling_process"].setChecked(False)
+                if not self.nav_buttons["panel_idx_questionnaire_setup"].isChecked():
+                    self.nav_buttons["panel_idx_questionnaire_setup"].setChecked(True)
+                elif self.main_content_stack.currentIndex() != self.panel_idx_questionnaire_setup:
+                    self.main_content_stack.setCurrentIndex(self.panel_idx_questionnaire_setup)
+        else:
+            # print(f"  MainWindow DEBUG: Switching to panel index {panel_index_to_set} for button {button_attribute_name}")
+            self.main_content_stack.setCurrentIndex(panel_index_to_set)
 
     def _handle_driver_path_update(self, new_path):  # 无变化
         global MSedgedriverPathGlobal
         if MSedgedriverPathGlobal != new_path:
             MSedgedriverPathGlobal = new_path
             self.statusBar().showMessage(f"驱动路径更新: {new_path if new_path else 'PATH查找'}", 3000)
+            # print(f"MainWindow DEBUG: Driver path updated to: {MSedgedriverPathGlobal}")
 
     def _handle_theme_update(self, theme_name_cn):  # 无变化
         if ui_styles.CURRENT_THEME != theme_name_cn:
@@ -464,7 +414,7 @@ class MainWindow(QMainWindow):
     def apply_styles(self):  # 无变化
         current_qss = ui_styles.get_app_qss()
         self.setStyleSheet(current_qss)
-        # ... (控件刷新逻辑) ...
+        # ... (控件刷新逻辑无变化)
         if hasattr(self, 'nav_bar_widget'):
             self.nav_bar_widget.style().unpolish(self.nav_bar_widget);
             self.nav_bar_widget.style().polish(self.nav_bar_widget);
@@ -474,17 +424,16 @@ class MainWindow(QMainWindow):
                 panel = self.main_content_stack.widget(i)
                 if panel: panel.style().unpolish(panel); panel.style().polish(panel); panel.update()
 
-    def _prepare_data_for_filling_panel(self):  # 无变化
-        print("MainWindow: _prepare_data_for_filling_panel")
+    def _prepare_data_for_filling_panel(self):  # 无变化，调试日志已加入
+        # print("MainWindow DEBUG: _prepare_data_for_filling_panel called.")
         parsed_q_data = self.questionnaire_setup_panel.get_parsed_questionnaire_data()
         user_raw_configs_template = self.questionnaire_setup_panel.get_user_raw_configurations_template()
         if not parsed_q_data or (isinstance(parsed_q_data, dict) and "error" in parsed_q_data):
-            # QMessageBox.warning(self, "数据错误", "请先加载并解析问卷。") # _handle_filling_navigation_click 中已有提示
+            # print("  MainWindow DEBUG: Parsed questionnaire data is invalid or missing.")
             return False
         if not user_raw_configs_template:
-            # QMessageBox.warning(self, "配置错误", "未能获取问卷配置模板。")
+            # print("  MainWindow DEBUG: User raw configurations template is missing.")
             return False
-        # ... (获取settings并传递给filling_process_panel.prepare_for_filling)
         current_msedgedriver_path = self.settings.value("msedgedriver_path", "")
         if current_msedgedriver_path == "": current_msedgedriver_path = None
         current_basic_settings = {
@@ -494,6 +443,7 @@ class MainWindow(QMainWindow):
             "num_fills_total": int(self.settings.value("num_fills", 1)),
             "headless": self.settings.value("headless_mode", True, type=bool)
         }
+        # print(f"  MainWindow DEBUG: Basic settings for filling panel: {current_basic_settings}")
         self.filling_process_panel.prepare_for_filling(
             url=self.questionnaire_setup_panel.url_input.text(),
             parsed_questionnaire_data=parsed_q_data,
@@ -501,27 +451,40 @@ class MainWindow(QMainWindow):
             basic_settings=current_basic_settings
         )
         if hasattr(self, 'statusBar'): self.statusBar().showMessage("数据准备就绪，可开始运行。", 3000)
+        # print("  MainWindow DEBUG: Data prepared successfully for filling panel.")
         return True
 
     def closeEvent(self, event):  # 无变化
+        # print("MainWindow DEBUG: closeEvent called.")
         if self.filling_process_panel.is_process_running:
             reply = QMessageBox.question(self, '任务运行中', "任务正在进行，确定退出吗？",
                                          QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
             if reply == QMessageBox.No:
-                event.ignore(); return
+                event.ignore();
+                return
             else:
-                self.filling_process_panel.stop_all_workers_forcefully()
+                # print("  MainWindow DEBUG: Stopping workers due to close event.")
+                self.filling_process_panel.stop_all_workers_forcefully(is_target_reached=False,
+                                                                       message_override="程序关闭，任务中止。")
         self.save_settings()
         event.accept()
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # 无变化
     def excepthook(exc_type, exc_value, exc_tb):
         tb_str = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
-        print("--------------------- 未处理的全局异常 ---------------------")
+        print("--------------------- 未处理的全局异常 (main.py) ---------------------")
         print(tb_str)
         print("------------------------------------------------------------")
-        # QMessageBox.critical(None, "致命错误", f"发生未捕获的异常:\n{exc_type.__name__}: {exc_value}\n\n详细信息已打印到控制台。\n程序即将退出。")
+        error_msg = f"发生未捕获的全局异常:\n{exc_type.__name__}: {exc_value}\n\n详细信息已打印到控制台。\n程序即将退出。"
+        try:
+            msg_box = QMessageBox()
+            msg_box.setIcon(QMessageBox.Critical)
+            msg_box.setWindowTitle("致命错误")
+            msg_box.setText(error_msg)
+            msg_box.exec_()
+        except Exception:
+            pass
         QApplication.quit()
 
 

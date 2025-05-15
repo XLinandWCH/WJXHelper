@@ -10,5 +10,35 @@
         "input_window_seconds": 60,
         "description": "测试代码",
         "issued_at_readable": "2025-05-15 07:49:13 UTC"
+    },
+    "edd3ce02-7fed-4936-a9e3-13adec4e869a": {
+        "validity_code": "24D",
+        "issue_timestamp_utc": 1747299112.5222418,
+        "input_window_seconds": 60,
+        "description": "无",
+        "issued_at_readable": "2025-05-15 08:51:52 UTC"
+    },
+    "0d2ba7dc-0dbc-4e47-8e0a-48c608023c84": {
+        "validity_code": "1D",
+        "issue_timestamp_utc": 1747299647.449643,
+        "input_window_seconds": 900,
+        "description": "",
+        "issued_at_readable": "2025-05-15 09:00:47 UTC"
+    },
+    "5bb99c00-3e5f-4fa4-b89a-e853a1f4b2e9": {
+        "validity_code": "2H",
+        "issue_timestamp_utc": 1747325006.8786383,
+        "input_window_seconds": 1440,
+        "description": "测试",
+        "issued_at_readable_utc": "2025-05-15 16:03:26 UTC",
+        "issued_at_readable_local": "2025-05-16 00:03:26 中国标准时间"
+    },
+    "ae2f4329-a299-46b5-af8d-4b3d2a58d345": {
+        "validity_code": "1Y",
+        "issue_timestamp_utc": 1747325772.3769953,
+        "input_window_seconds": 43200,
+        "description": "测试",
+        "issued_at_readable_utc": "2025-05-15 16:16:12 UTC",
+        "issued_at_readable_local": "2025-05-16 00:16:12 中国标准时间"
     }
 }
