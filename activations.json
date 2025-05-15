@@ -1,0 +1,14 @@
+{
+    "eb59e206-aea8-4e2d-b984-c50591e57191": {
+        "validity_code": "1D",
+        "description": "为爱发电",
+        "issued_at_script_time": "2025-05-15 14:17:57"
+    },
+    "d779e52b-58db-4c54-b4be-1d4b48f02c3c": {
+        "validity_code": "1D",
+        "issue_timestamp_utc": 1747295353.8047314,
+        "input_window_seconds": 60,
+        "description": "测试代码",
+        "issued_at_readable": "2025-05-15 07:49:13 UTC"
+    }
+}
