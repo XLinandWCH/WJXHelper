@@ -48,5 +48,21 @@
         "description": "通过扫码支付自动生成的月卡激活码",
         "issued_at_readable_utc": "2025-05-16 04:35:04 UTC",
         "issued_at_readable_local": "2025-05-16 12:35:04 中国标准时间"
+    },
+    "ed2e90c9-6f8a-4c7e-80a8-80eb515680ad": {
+        "validity_code": "1M",
+        "issue_timestamp_utc": 1747539470.2036746,
+        "input_window_seconds": 0,
+        "description": "通过扫码支付自动生成的月卡激活码",
+        "issued_at_readable_utc": "2025-05-18 03:37:50 UTC",
+        "issued_at_readable_local": "2025-05-18 11:37:50 中国标准时间"
+    },
+    "5a822c5a-03db-4bef-bc55-5bcb74d055ac": {
+        "validity_code": "2M",
+        "issue_timestamp_utc": 1747539878.5697067,
+        "input_window_seconds": 0,
+        "description": "挑战杯",
+        "issued_at_readable_utc": "2025-05-18 03:44:38 UTC",
+        "issued_at_readable_local": "2025-05-18 11:44:38 中国标准时间"
     }
 }
