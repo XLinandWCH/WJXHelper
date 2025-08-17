@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>AI 助手使用说明</title>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2c3e50;
+            --background-color: #ffffff;
+            --text-color: #333333;
+            --border-color: #dddddd;
+            --header-bg-color: #ecf0f1;
+            --tip-bg-color: #e8f4fd;
+            --tip-border-color: #3498db;
+            --note-bg-color: #fdf5e6;
+            --note-border-color: #f39c12;
+            --code-bg-color: #e9e9e9;
+            --code-text-color: #c7254e;
+            --important-text-color: #e74c3c;
+        }
+        body {
+            font-family: "Segoe UI", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.9;
+            padding: 25px;
+            color: var(--text-color);
+            background-color: var(--background-color);
+            font-size: 16px;
+        }
+        h1, h2, h3 { 
+            color: var(--secondary-color); 
+            font-weight: 600;
+        }
+        h1 { 
+            text-align: center; 
+            margin-bottom: 25px; 
+            font-size: 2.2em; 
+        }
+        h2 { 
+            border-bottom: 2px solid var(--primary-color); 
+            padding-bottom: 10px; 
+            margin-top: 35px; 
+            font-size: 1.6em;
+        }
+        p, li {
+            margin-bottom: 12px;
+            font-size: 1.05em;
+        }
+        ul, ol { 
+            padding-left: 25px; 
+        }
+        .important { 
+            color: var(--important-text-color); 
+            font-weight: bold; 
+        }
+        .tip, .note {
+            padding: 15px;
+            margin: 15px 0;
+            border-left-width: 5px;
+            border-left-style: solid;
+            border-radius: 4px;
+        }
+        .tip { 
+            background-color: var(--tip-bg-color); 
+            border-left-color: var(--tip-border-color); 
+        }
+        .note { 
+            background-color: var(--note-bg-color); 
+            border-left-color: var(--note-border-color); 
+        }
+        .prompt-example {
+            background-color: #f5f5f5;
+            border: 1px solid #e0e0e0;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            font-style: italic;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <h1>AI 智能配置助手 使用说明</h1>
+
+    <p class="tip">欢迎来到 AI 助手的使用说明。这是本工具的<span class="important">核心亮点</span>功能，它能将繁琐的问卷配置过程简化为一次对话。</p>
+
+    <h2>一、工作原理</h2>
+    <p>AI 助手通过调用强大的大型语言模型 (LLM)，理解您用自然语言下达的指令，然后将这些指令转化为精确的问卷答案配置策略（如权重、概率、填空内容等），并自动应用到问卷的每个题目上。</p>
+
+    <h2>二、使用步骤</h2>
+    <ol>
+        <li>
+            <b>配置 AI 服务：</b>
+            <p class="note">首次使用 AI 助手前，您必须在 **“程序设置”** 页面完成 AI 服务的配置。这包括选择服务商 (Gemini/OpenAI)、填写您的 <b>API Key</b> 和 <b>Base URL</b>。请确保您的账户有效且有足够余额。</p>
+        </li>
+        <li>
+            <b>加载问卷：</b>在“问卷配置”页面，按常规流程加载您需要填写的问卷。
+        </li>
+        <li>
+            <b>下达指令：</b>在右侧的 AI 助手面板中，于“请输入您的要求”文本框内，清晰地描述您的填写意图。
+            <p>您的指令可以非常灵活，例如：</p>
+            <div class="prompt-example">
+                <p><b>场景1：角色扮演</b></p>
+                <p>“帮我填这份大学生消费观问卷。我是男生，来自农村，家庭条件一般，每月生活费1500元。消费比较理性，追求性价比，偶尔买点娱乐产品但从不超前消费。对名牌不是很在意。”</p>
+            </div>
+            <div class="prompt-example">
+                <p><b>场景2：明确倾向</b></p>
+                <p>“这份是产品满意度调查，请扮演一个忠实用户，对产品整体非常满意，但对售后服务部分给一些中等偏低的评价，并提出一些具体的改进建议。”</p>
+            </div>
+            <div class="prompt-example">
+                <p><b>场景3：简单规则</b></p>
+                <p>“所有单选题都选第一个选项，多选题全部选中，填空题都写‘无’。”</p>
+            </div>
+        </li>
+        <li><b>发送并等待：</b>点击【发送】按钮。程序会将您的指令和问卷结构一同发送给 AI。此时对话框会显示“API调用中...”，请耐心等待。根据网络和模型响应速度，此过程可能需要几十秒到一两分钟。</li>
+        <li><b>检查与微调：</b>AI 处理完成后，生成的配置会自动填充到左侧的问卷题目中。 <span class="important">强烈建议您检查一遍所有题目的配置</span>，并根据需要进行手动微调，以确保结果完全符合您的预期。</li>
+    </ol>
+
+    <h2>三、高级技巧 (Prompt Engineering)</h2>
+    <ul>
+        <li><b>指令越清晰，结果越精准：</b>您提供的角色背景、倾向性、具体要求越详细，AI 生成的配置就越符合您的心意。</li>
+        <li><b>分步指令：</b>对于特别复杂的问卷，可以先给出一个总体指令，待 AI 配置后，再针对某些特定题目给出更具体的补充指令，进行二次优化。</li>
+        <li><b>利用 AI 进行创造性填写：</b>对于开放性问题，您可以让 AI 扮演特定角色来生成更丰富、更真实的回答，使数据看起来更“人性化”。</li>
+    </ul>
+
+</body>
+</html>
