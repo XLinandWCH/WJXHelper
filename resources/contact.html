@@ -4,111 +4,111 @@
     <meta charset="UTF-8">
     <title>关于与支持 - 问卷星助手</title>
     <style>
+        :root {
+            --primary-color: #16a085;
+            --secondary-color: #2c3e50;
+            --background-color: #ffffff;
+            --text-color: #333333;
+            --link-color: #0078D7;
+            --link-hover-color: #005a9e;
+            --info-block-bg-color: #eef7ff;
+            --info-block-border-color: #0078D7;
+            --donation-bg-color: #f7f7f7;
+            --donation-border-color: #e7e7e7;
+        }
         body {
-            font-family: "Microsoft YaHei UI", "Segoe UI", sans-serif;
-            line-height: 1.6;
-            padding: 15px;
-            font-size: 10pt;
+            font-family: "Segoe UI", "Microsoft YaHei UI", sans-serif;
+            line-height: 1.9;
+            padding: 25px;
+            font-size: 16px;
+            color: var(--text-color);
+            background-color: var(--background-color);
         }
         h2 {
-            color: #16a085;
-            border-bottom: 1px solid #1abc9c;
-            padding-bottom: 8px;
+            color: var(--primary-color);
+            border-bottom: 2px solid #1abc9c;
+            padding-bottom: 10px;
             margin-top: 10px;
-            margin-bottom: 15px;
-            font-size: 1.4em;
+            margin-bottom: 20px;
+            font-size: 1.6em;
+            font-weight: 600;
         }
         h3 {
-            color: #2c3e50;
-            margin-top: 20px;
-            margin-bottom: 10px;
-            font-size: 1.15em;
+            color: var(--secondary-color);
+            margin-top: 25px;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            font-weight: 600;
+            border-left: 4px solid var(--primary-color);
+            padding-left: 10px;
         }
         p {
-            margin-bottom: 10px;
+            margin-bottom: 12px;
+            font-size: 1.05em;
         }
         ul {
-            margin-left: 20px;
             list-style-type: disc;
-            margin-bottom: 10px;
+            padding-left: 25px;
+            margin-bottom: 15px;
         }
         li {
-            margin-bottom: 4px;
+            margin-bottom: 6px;
         }
         a {
-            color: #0078D7;
+            color: var(--link-color);
             text-decoration: none;
+            font-weight: 500;
         }
         a:hover {
             text-decoration: underline;
-            color: #005a9e;
+            color: var(--link-hover-color);
         }
         code {
             background-color: #f0f0f0;
-            padding: 2px 4px;
-            border-radius: 3px;
+            padding: 4px 7px;
+            border-radius: 4px;
             font-family: Consolas, "Courier New", monospace;
-            font-size: 0.9em;
+            font-size: 0.95em;
         }
         hr {
             border: 0;
             height: 1px;
             background-color: #e0e0e0;
-            margin: 25px 0;
+            margin: 30px 0;
+        }
+        .info-block {
+            background-color: var(--info-block-bg-color);
+            border-left: 5px solid var(--info-block-border-color);
+            padding: 12px 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
         }
         .donation-section {
             text-align: center;
-            background-color: #f7f7f7;
-            padding: 15px;
-            border-radius: 4px;
-            border: 1px solid #e7e7e7;
-            margin-top: 15px;
-        }
-        .donation-section > p:first-child {
-            margin-bottom: 15px;
-            font-size: 0.95em;
-        }
-        .qr-code-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-top: 0;
-            margin-bottom: 5px;
-        }
-        .qr-code-item {
-            text-align: center;
-            margin: 5px;
-            max-width: 200px;
+            background-color: var(--donation-bg-color);
+            padding: 20px;
+            border-radius: 5px;
+            border: 1px solid var(--donation-border-color);
+            margin-top: 20px;
         }
         .qr-code-item img {
-            width: 150px;
+            width: 160px;
             height: auto;
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
             border: 1px solid #e0e0e0;
-            padding: 3px;
+            padding: 4px;
             background-color: #fff;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             object-fit: contain;
+            border-radius: 4px;
         }
         .qr-code-item p {
-            font-size: 0.9em;
-            color: #585858;
-            margin-top: 6px;
-            margin-bottom: 0;
-            line-height: 1.3;
-        }
-        .info-block {
-            background-color: #eef7ff;
-            border-left: 3px solid #0078D7;
-            padding: 8px 12px;
-            margin-bottom: 15px;
             font-size: 0.95em;
+            color: #585858;
+            margin-top: 8px;
         }
         .thank-you-note {
             text-align:center;
-            margin-top:15px;
+            margin-top:20px;
             font-size:0.9em;
             color: #777;
         }
@@ -117,43 +117,37 @@
 <body>
     <h2>关于与支持</h2>
     <div class="info-block">
-        <p><b>问卷星助手 (WJX Helper)</b> 旨在提供一个学习和研究自动化技术的平台。</p>
-        <p>当前版本: 1.4.5 </p> <!-- 更新版本号 -->
+        <p><b>问卷星助手 (WJX Helper)</b> 是一款为学习和研究自动化技术而开发的工具。</p>
+        <p><b>当前版本:</b> 1.5.0</p>
     </div>
 
     <h3>交流与反馈</h3>
-    <p>如果您在使用过程中遇到任何问题，或者有好的建议与想法，欢迎通过以下方式联系开发者或参与社群讨论：</p>
+    <p>如果您在使用中遇到任何问题，或有好的建议与想法，欢迎通过以下方式联系我们：</p>
     <ul>
-        <li><b>QQ交流群:</b> <code>139767507</code> (遇到问题、建议、获取激活码可在此反馈)</li>
-        <li><b>项目GitHub仓库:</b> <a href="https://github.com/XLinandWCH/WJXHelper">https://github.com/XLinandWCH/WJXHelper</a></li>
-        <li><b>开发者邮箱:</b> <a href="mailto:xlinandwch@outlook.com">xlinandwch@outlook.com</a> (获取激活码或反馈)</li>
+        <li><b>QQ交流群:</b> <code>139767507</code> (问题反馈、功能建议、获取激活码)</li>
+        <li><b>项目GitHub仓库:</b> <a href="https://github.com/XLinandWCH/WJXHelper">XLinandWCH/WJXHelper</a></li>
+        <li><b>开发者邮箱:</b> <a href="mailto:xlinandwch@outlook.com">xlinandwch@outlook.com</a></li>
     </ul>
     <p>您的每一个反馈都是项目改进的宝贵动力！</p>
 
-    <!-- 新增获取激活码说明 -->
-    <h3>关于使用限制与激活</h3>
-    <p>为了项目的可持续发展，本工具在未激活状态下有 <code>2000</code> 份的总填写次数限制 (此限制在不同版本中可能会调整)。达到此限制后，您需要激活才能继续使用。</p>
+    <h3>使用限制与激活</h3>
+    <p>为了项目的可持续发展，本工具在未激活状态下有 <code>2000</code> 份的总填写次数限制。达到限制后，您需要激活才能继续使用。</p>
     <p><b>如何免费获取激活码：</b></p>
     <ul>
         <li>加入上方的 <b>QQ交流群</b> (<code>139767507</code>)，联系群主或管理员。</li>
-        <li>发送邮件至 <b>开发者邮箱</b> (<code>xlinandwch@outlook.com</code>)，简要说明您的使用场景或提供一些使用反馈。</li>
+        <li>发送邮件至 <b>开发者邮箱</b>，简要说明您的使用场景或提供一些使用反馈。</li>
     </ul>
-    <p>我们乐于为真实用户和学习者提供免费的激活码，您的理解与支持对我们非常重要。</p>
-
+    <p>我们乐于为真实用户和学习者提供免费的激活码。</p>
 
     <hr>
 
     <h3>鼓励与赞助</h3>
-    <p>如果您觉得这个小工具对您有所帮助，并且希望支持项目的持续开发与维护，可以考虑通过以下方式鼓励一下作者：</p>
+    <p>如果您觉得这个小工具对您有所帮助，希望支持项目的持续开发与维护，可以考虑鼓励一下作者：</p>
     <div class="donation-section">
-        <p>您的支持意义非凡，哪怕是一杯奶茶的鼓励！激活是免费的，赞助是情分 :)</p>
-
-        <div class="qr-code-container">
-            <div class="qr-code-item">
-                <!-- 图片源统一为 收款.png 或 为爱发电.png -->
-                <img src="icons/为爱发电.png" alt="支持作者"> <!-- 确保 icons/为爱发电.png 存在于 resources 目录下 -->
-                <p>扫码支持</p>
-            </div>
+        <p>您的支持意义非凡！激活是免费的，赞助是情分 :)</p>
+        <div class="qr-code-item">
+            <img src="icons/为爱发电.png" alt="支持作者">
+            <p>扫码支持</p>
         </div>
     </div>
     <p class="thank-you-note"><em>感谢您的慷慨与支持！</em></p>

@@ -63,6 +63,12 @@ class HelpPanel(QWidget):
         self.manual_browser.setHtml(load_html_for_help_panel(self.project_root_dir, "manual.html"))
         self.tab_widget.addTab(self.manual_browser, "使用说明")
 
+        self.ai_manual_browser = QTextBrowser();
+        self.ai_manual_browser.setOpenExternalLinks(True)
+        self.ai_manual_browser.setSearchPaths([os.path.join(search_path_base, 'resources')])
+        self.ai_manual_browser.setHtml(load_html_for_help_panel(self.project_root_dir, "ai_manual.html"))
+        self.tab_widget.addTab(self.ai_manual_browser, "AI助手说明")
+
         self.disclaimer_browser = QTextBrowser();
         self.disclaimer_browser.setOpenExternalLinks(True)
         self.disclaimer_browser.setSearchPaths([os.path.join(search_path_base, 'resources')])
@@ -75,109 +81,28 @@ class HelpPanel(QWidget):
         self.contact_about_browser.setHtml(load_html_for_help_panel(self.project_root_dir, "contact.html"))
         self.tab_widget.addTab(self.contact_about_browser, "关于与支持")
 
-        self.update_page_widget = QWidget()
-        self._init_update_page_ui(self.update_page_widget)
-        self.tab_widget.addTab(self.update_page_widget, "版本与更新")
         main_layout.addWidget(self.tab_widget)
         self.tab_widget.setCurrentIndex(0)
 
-    def _init_update_page_ui(self, page_widget):
-        layout = QVBoxLayout(page_widget);
-        layout.setContentsMargins(20, 20, 20, 20);
-        layout.setAlignment(Qt.AlignCenter)
-        current_version = self.main_window_ref.CURRENT_APP_VERSION if self.main_window_ref and hasattr(
-            self.main_window_ref, 'CURRENT_APP_VERSION') else "未知"
-        info_layout = QVBoxLayout();
-        info_layout.setAlignment(Qt.AlignCenter)
-        title_label = QLabel("版本信息");
-        title_label.setStyleSheet("font-size:16pt;font-weight:bold;margin-bottom:10px;");
-        title_label.setAlignment(Qt.AlignCenter)
-        info_layout.addWidget(title_label)
-        name_label = QLabel("软件名称：问卷星助手 (WJXHelper)");
-        name_label.setAlignment(Qt.AlignCenter)
-        info_layout.addWidget(name_label)
-        self.current_version_display_label = QLabel(f"当前版本：{current_version}");
-        self.current_version_display_label.setAlignment(Qt.AlignCenter)
-        self.current_version_display_label.setStyleSheet("margin-bottom:10px;")
-        info_layout.addWidget(self.current_version_display_label)
-        self.version_status_text_label = QLabel("点击下方按钮检查更新。");
-        self.version_status_text_label.setAlignment(Qt.AlignCenter)
-        self.version_status_text_label.setWordWrap(True);
-        self.version_status_text_label.setStyleSheet("margin-bottom:20px;")
-        info_layout.addWidget(self.version_status_text_label)
-        layout.addLayout(info_layout)
-        self.update_now_button = QPushButton("立即更新");
-        self.update_now_button.setMinimumHeight(35)
-        self.update_now_button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
-        button_h_layout = QHBoxLayout();
-        button_h_layout.addStretch();
-        button_h_layout.addWidget(self.update_now_button);
-        button_h_layout.addStretch()
-        layout.addLayout(button_h_layout);
-        layout.addStretch(1)
-
     def _connect_signals(self):
-        if hasattr(self, 'update_now_button'):
-            self.update_now_button.clicked.connect(self._trigger_update_process_from_help_panel)
+        pass  # No signals to connect in this simplified version
 
-    def _trigger_update_process_from_help_panel(self):
-        if self.main_window_ref and hasattr(self.main_window_ref, 'manual_check_for_updates'):
-            self.version_status_text_label.setText("版本状态：正在检查更新，请稍候...")
-            self.main_window_ref.manual_check_for_updates(
-                silent_if_no_update=False,
-                update_help_panel_directly=False  # 结果由MainWindow弹窗显示，HelpPanel不再复杂更新
-            )
-
-    # --- 正确实现 display_update_info ---
-    def display_update_info(self, is_latest, server_info=None, current_app_version_str=None):
-        """
-        由MainWindow调用，用于在HelpPanel的“版本与更新”页面更新状态文本。
-        """
-        if not hasattr(self, 'version_status_text_label'):  # 健壮性检查
-            return
-
-        if current_app_version_str is None:
-            current_app_version_str = self.main_window_ref.CURRENT_APP_VERSION if self.main_window_ref else "未知"
-
-        # 更新当前版本显示（如果它可能变化的话，虽然不太可能）
-        if hasattr(self, 'current_version_display_label'):
-            self.current_version_display_label.setText(f"当前版本：{current_app_version_str}")
-
-        if server_info and server_info.get("status") == "checking":
-            self.version_status_text_label.setText("版本状态：正在检查更新...")
-            return
-
-        if is_latest:
-            self.version_status_text_label.setText("版本状态：已是最新版本。")
-        else:
-            if server_info and "error" not in server_info:
-                latest_version = server_info.get("latest_version", "未知")
-                # 根据您的要求，详细信息和下载按钮由MainWindow的弹窗处理
-                # HelpPanel只显示一个简单的提示，引导用户点击“立即更新”按钮
-                self.version_status_text_label.setText(
-                    f"版本状态：可能存在新版本 (服务器最新: {latest_version})。请点击“立即更新”按钮获取详情。")
-            elif server_info and "error" in server_info:
-                self.version_status_text_label.setText(
-                    f"<font color='red'>检查更新时出错：{server_info['error']}</font>")
-            else:
-                self.version_status_text_label.setText("<font color='red'>无法获取版本信息，请稍后重试。</font>")
-
-    # --- END display_update_info ---
-
-    def refresh_current_version_display(self):  # (保持不变)
-        if hasattr(self, 'current_version_display_label') and self.main_window_ref and hasattr(self.main_window_ref,
-                                                                                               'CURRENT_APP_VERSION'):
-            self.current_version_display_label.setText(f"当前版本：{self.main_window_ref.CURRENT_APP_VERSION}")
-
-    def refresh_all_html_content(self):  # (保持不变)
+    def refresh_all_html_content(self):
         if not self.project_root_dir: return
-        if self.manual_browser: self.manual_browser.setSearchPaths(
-            [os.path.join(self.project_root_dir, 'resources')]); self.manual_browser.setHtml(
-            load_html_for_help_panel(self.project_root_dir, "manual.html"))
-        if self.disclaimer_browser: self.disclaimer_browser.setSearchPaths(
-            [os.path.join(self.project_root_dir, 'resources')]); self.disclaimer_browser.setHtml(
-            load_html_for_help_panel(self.project_root_dir, "disclaimer.html"))
-        if self.contact_about_browser: self.contact_about_browser.setSearchPaths(
-            [os.path.join(self.project_root_dir, 'resources')]); self.contact_about_browser.setHtml(
-            load_html_for_help_panel(self.project_root_dir, "contact.html"))
-        self.refresh_current_version_display()
+        search_path = os.path.join(self.project_root_dir, 'resources')
+        
+        if hasattr(self, 'manual_browser'):
+            self.manual_browser.setSearchPaths([search_path])
+            self.manual_browser.setHtml(load_html_for_help_panel(self.project_root_dir, "manual.html"))
+        
+        if hasattr(self, 'ai_manual_browser'):
+            self.ai_manual_browser.setSearchPaths([search_path])
+            self.ai_manual_browser.setHtml(load_html_for_help_panel(self.project_root_dir, "ai_manual.html"))
+            
+        if hasattr(self, 'disclaimer_browser'):
+            self.disclaimer_browser.setSearchPaths([search_path])
+            self.disclaimer_browser.setHtml(load_html_for_help_panel(self.project_root_dir, "disclaimer.html"))
+            
+        if hasattr(self, 'contact_about_browser'):
+            self.contact_about_browser.setSearchPaths([search_path])
+            self.contact_about_browser.setHtml(load_html_for_help_panel(self.project_root_dir, "contact.html"))

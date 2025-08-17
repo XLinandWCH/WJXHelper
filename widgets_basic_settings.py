@@ -1,14 +1,16 @@
 # widgets_basic_settings.py
 import os
+import re
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
                              QPushButton, QGroupBox, QFormLayout, QSpinBox,
                              QFileDialog, QComboBox, QCheckBox,
                              QSizePolicy, QSpacerItem,QFrame,QScrollArea,
-                             QGridLayout)
+                             QGridLayout, QApplication)
 from PyQt5.QtCore import pyqtSignal, Qt, QSettings
 from PyQt5.QtGui import QColor, QPalette
 
 import ui_styles
+from utils import encrypt_data, decrypt_data
 
 
 class BasicSettingsPanel(QWidget):
@@ -26,11 +28,14 @@ class BasicSettingsPanel(QWidget):
         self._init_ui_layout()
         self._create_browser_driver_group()  # 替换原来的 _create_driver_settings_group
         self._create_filling_params_group()
+        self._create_ai_settings_group()
+        self._create_captcha_ai_settings_group() # 新增验证码AI配置组
         self._create_theme_settings_group()
         self._add_widgets_to_main_layout()
         self._load_settings_to_ui()
         self._connect_all_signals()
         self._update_driver_path_visibility()  # 初始根据浏览器类型显示正确的路径输入
+        self._update_human_like_delay_visibility() # 初始根据复选框状态显示延迟设置
 
     def _init_ui_layout(self):
         self.outer_layout = QVBoxLayout(self)
@@ -109,10 +114,14 @@ class BasicSettingsPanel(QWidget):
         self.geckodriver_path_row_label = QLabel("Firefox Driver 路径:")
         layout.addRow(self.geckodriver_path_row_label, self.geckodriver_path_widget)
 
-        # 代理设置 (保持不变，但放在这个GroupBox里)
+        # --- 代理设置 ---
+        self.enable_proxy_checkbox = QCheckBox("启用代理服务器")
+        layout.addRow(self.enable_proxy_checkbox)
+
         self.proxy_input = QLineEdit()
-        self.proxy_input.setPlaceholderText("格式: IP地址:端口 (留空则不使用)")
-        layout.addRow("代理服务器:", self.proxy_input)
+        self.proxy_input.setPlaceholderText("格式: IP地址:端口")
+        self.proxy_input_label = QLabel("代理地址:")
+        layout.addRow(self.proxy_input_label, self.proxy_input)
 
     def _create_filling_params_group(self):  # (保持不变)
         self.filling_params_group = QGroupBox("自动化填写参数")
@@ -130,6 +139,107 @@ class BasicSettingsPanel(QWidget):
         params_form_layout.addRow("目标填写总份数:", self.num_fills_spinbox)
         self.headless_checkbox = QCheckBox("以无头模式运行浏览器 (不显示浏览器界面)")
         params_form_layout.addRow(self.headless_checkbox)
+
+        self.slow_mode_checkbox = QCheckBox("启用慢速稳定模式 (应对反爬虫)")
+        self.slow_mode_checkbox.setToolTip("模拟更慢、更像人类的操作，以提高在严格反爬虫下的成功率，但会降低填写速度。")
+        params_form_layout.addRow(self.slow_mode_checkbox)
+
+        # --- "拟人工" Mode Settings ---
+        line = QFrame()
+        line.setFrameShape(QFrame.HLine)
+        line.setFrameShadow(QFrame.Sunken)
+        params_form_layout.addRow(line)
+        self.human_like_mode_checkbox = QCheckBox("启用'拟人工'选择题延迟")
+        self.human_like_mode_checkbox.setToolTip("开启后，每个选择题的作答将会有随机延迟，模拟人工操作。")
+        params_form_layout.addRow(self.human_like_mode_checkbox)
+
+        self.human_like_delay_widget = QWidget()
+        delay_layout = QHBoxLayout(self.human_like_delay_widget)
+        delay_layout.setContentsMargins(0, 0, 0, 0)
+        delay_layout.setSpacing(10)
+        self.min_delay_input = QLineEdit("0")
+        self.min_delay_input.setPlaceholderText("秒")
+        self.max_delay_input = QLineEdit("1.5")
+        self.max_delay_input.setPlaceholderText("秒")
+        delay_layout.addWidget(QLabel("延迟范围:"))
+        delay_layout.addWidget(self.min_delay_input)
+        delay_layout.addWidget(QLabel("到"))
+        delay_layout.addWidget(self.max_delay_input)
+        delay_layout.addWidget(QLabel("秒"))
+        delay_layout.addStretch()
+        params_form_layout.addRow(self.human_like_delay_widget)
+
+    def _create_ai_settings_group(self):
+        self.ai_group = QGroupBox("AI 助手配置")
+        ai_layout = QFormLayout(self.ai_group)
+        ai_layout.setSpacing(12)
+        ai_layout.setLabelAlignment(Qt.AlignLeft)
+        ai_layout.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
+
+        # AI 服务商选择
+        self.ai_service_provider_combo = QComboBox()
+        self.ai_service_provider_combo.addItems(["Gemini", "OpenAI"])
+        ai_layout.addRow("AI 服务商:", self.ai_service_provider_combo)
+
+        # Gemini API Key 输入
+        # Gemini Model Selection
+        self.gemini_model_combo = QComboBox()
+        # Update with newer models based on user feedback and image
+        self.gemini_model_combo.addItems([
+            'gemini-2.5-pro',
+            'gemini-2.5-flash',
+            'gemini-2.5-pro-preview-06-05',
+            'gemini-2.0-flash-001',
+            'gemini-2.5-pro-preview-05-06',
+            'gemini-2.0-pro-exp-02-05'
+        ])
+        self.gemini_model_label = QLabel("Gemini 模型:")
+        ai_layout.addRow(self.gemini_model_label, self.gemini_model_combo)
+
+        self.gemini_api_key_input = QLineEdit()
+        self.gemini_api_key_input.setPlaceholderText("在此输入您的 Gemini API 密钥")
+        self.gemini_api_key_input.setEchoMode(QLineEdit.Password)
+        self.gemini_api_key_label = QLabel("Gemini API Key:")
+        ai_layout.addRow(self.gemini_api_key_label, self.gemini_api_key_input)
+
+        # OpenAI API Key 输入
+        self.openai_api_key_input = QLineEdit()
+        self.openai_api_key_input.setPlaceholderText("在此输入您的 OpenAI API 密钥")
+        self.openai_api_key_input.setEchoMode(QLineEdit.Password)
+        self.openai_api_key_label = QLabel("OpenAI API Key:")
+        ai_layout.addRow(self.openai_api_key_label, self.openai_api_key_input)
+
+        # OpenAI/LM Studio Base URL
+        self.openai_base_url_input = QLineEdit()
+        self.openai_base_url_input.setPlaceholderText("留空则为官方地址, LM Studio 示例: http://localhost:1234/v1")
+        self.openai_base_url_label = QLabel("服务器地址 (Base URL):")
+        ai_layout.addRow(self.openai_base_url_label, self.openai_base_url_input)
+
+        # AI Proxy Setting
+        self.ai_proxy_input = QLineEdit()
+        self.ai_proxy_input.setPlaceholderText("例如: http://127.0.0.1:7890 (仅用于AI)")
+        ai_layout.addRow("AI 代理地址:", self.ai_proxy_input)
+
+    def _create_captcha_ai_settings_group(self):
+        self.captcha_ai_group = QGroupBox("AI 验证码识别配置")
+        layout = QFormLayout(self.captcha_ai_group)
+        layout.setSpacing(12)
+        layout.setLabelAlignment(Qt.AlignLeft)
+        layout.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
+
+        self.captcha_service_provider_combo = QComboBox()
+        self.captcha_service_provider_combo.addItems(["(未实现) Google Vision", "(未实现) Azure Vision"])
+        layout.addRow("验证码服务商:", self.captcha_service_provider_combo)
+
+        self.captcha_api_key_input = QLineEdit()
+        self.captcha_api_key_input.setPlaceholderText("输入验证码识别服务的 API Key")
+        self.captcha_api_key_input.setEchoMode(QLineEdit.Password)
+        layout.addRow("Captcha API Key:", self.captcha_api_key_input)
+
+        self.captcha_api_secret_input = QLineEdit()
+        self.captcha_api_secret_input.setPlaceholderText("输入 API Secret 或 Token (如果需要)")
+        self.captcha_api_secret_input.setEchoMode(QLineEdit.Password)
+        layout.addRow("Captcha API Secret:", self.captcha_api_secret_input)
 
     def _create_theme_settings_group(self):  # (保持不变)
         self.theme_group = QGroupBox("界面与主题");
@@ -152,6 +262,8 @@ class BasicSettingsPanel(QWidget):
     def _add_widgets_to_main_layout(self):
         self.main_settings_layout.addWidget(self.browser_driver_group)  # 使用新的GroupBox
         self.main_settings_layout.addWidget(self.filling_params_group)
+        self.main_settings_layout.addWidget(self.ai_group)
+        self.main_settings_layout.addWidget(self.captcha_ai_group)
         self.main_settings_layout.addWidget(self.theme_group)
         self.main_settings_layout.addStretch(1)
 
@@ -167,11 +279,30 @@ class BasicSettingsPanel(QWidget):
         self.geckodriver_path_input.editingFinished.connect(self._handle_driver_path_input_changed)
 
         self.use_bundled_edgedriver_checkbox.stateChanged.connect(self._handle_use_bundled_driver_changed)
+        self.enable_proxy_checkbox.stateChanged.connect(self._toggle_proxy_input_visibility)
         self.proxy_input.editingFinished.connect(self._handle_proxy_changed)
 
         self.num_threads_spinbox.valueChanged.connect(self._handle_filling_param_changed)
         self.num_fills_spinbox.valueChanged.connect(self._handle_filling_param_changed)
         self.headless_checkbox.stateChanged.connect(self._handle_filling_param_changed)
+        self.slow_mode_checkbox.stateChanged.connect(self._handle_filling_param_changed)
+
+        self.human_like_mode_checkbox.stateChanged.connect(self._handle_human_like_mode_changed)
+        self.min_delay_input.editingFinished.connect(self._handle_human_like_mode_changed)
+        self.max_delay_input.editingFinished.connect(self._handle_human_like_mode_changed)
+        
+        self.gemini_api_key_input.editingFinished.connect(self._handle_api_key_changed)
+        self.openai_api_key_input.editingFinished.connect(self._handle_api_key_changed)
+        self.ai_service_provider_combo.currentTextChanged.connect(self._handle_ai_provider_changed)
+        self.gemini_model_combo.currentTextChanged.connect(self._handle_gemini_model_changed)
+        self.openai_base_url_input.editingFinished.connect(self._handle_openai_base_url_changed)
+        self.ai_proxy_input.editingFinished.connect(self._handle_ai_proxy_changed)
+
+        # 连接验证码AI设置信号
+        self.captcha_service_provider_combo.currentTextChanged.connect(self._handle_captcha_settings_changed)
+        self.captcha_api_key_input.editingFinished.connect(self._handle_captcha_settings_changed)
+        self.captcha_api_secret_input.editingFinished.connect(self._handle_captcha_settings_changed)
+
         self.theme_combobox.currentTextChanged.connect(self._handle_theme_selection_changed)
 
     def _load_settings_to_ui(self):
@@ -196,15 +327,62 @@ class BasicSettingsPanel(QWidget):
         else:  # 如果checkbox不可用（例如，没找到内置驱动），则强制不勾选
             self.use_bundled_edgedriver_checkbox.setChecked(False)
 
+        # 加载代理设置
+        proxy_enabled = self.settings.value("proxy_enabled", False, type=bool)
+        self.enable_proxy_checkbox.setChecked(proxy_enabled)
         self.proxy_input.setText(self.settings.value("proxy_address", ""))
+        self._toggle_proxy_input_visibility() # 根据加载的状态更新显隐
+
         self.num_threads_spinbox.setValue(self.settings.value("num_threads", 2, type=int))
         self.num_fills_spinbox.setValue(self.settings.value("num_fills", 10, type=int))
         self.headless_checkbox.setChecked(self.settings.value("headless_mode", True, type=bool))
+        self.slow_mode_checkbox.setChecked(self.settings.value("slow_mode", False, type=bool))
+
+        self.human_like_mode_checkbox.setChecked(self.settings.value("human_like_mode", False, type=bool))
+        self.min_delay_input.setText(self.settings.value("human_like_min_delay", "0"))
+        self.max_delay_input.setText(self.settings.value("human_like_max_delay", "1.5"))
 
         current_theme_name = self.settings.value("theme", ui_styles.CURRENT_THEME)
         self.theme_combobox.setCurrentText(current_theme_name)
         self._update_color_previews(current_theme_name)
         self._update_driver_path_visibility()  # 确保基于加载的设置正确显示UI
+        self._update_human_like_delay_visibility() # 确保基于加载的设置正确显示UI
+
+        # 加载AI服务商选择
+        saved_provider = self.settings.value("ai_service_provider", "Gemini")
+        self.ai_service_provider_combo.setCurrentText(saved_provider)
+
+        # 加载Gemini模型选择, default to the new top model
+        saved_gemini_model = self.settings.value("gemini_model", "gemini-2.5-pro")
+        self.gemini_model_combo.setCurrentText(saved_gemini_model)
+
+        # 加载并解密API密钥
+        encrypted_gemini_key = self.settings.value("gemini_api_key_encrypted", "")
+        if encrypted_gemini_key:
+            decrypted_key = decrypt_data(encrypted_gemini_key)
+            self.gemini_api_key_input.setText(decrypted_key)
+
+        encrypted_openai_key = self.settings.value("openai_api_key_encrypted", "")
+        if encrypted_openai_key:
+            decrypted_key = decrypt_data(encrypted_openai_key)
+            self.openai_api_key_input.setText(decrypted_key)
+
+        # Load OpenAI Base URL
+        self.openai_base_url_input.setText(self.settings.value("openai_base_url", ""))
+
+        # Load AI Proxy
+        self.ai_proxy_input.setText(self.settings.value("ai_proxy_address", ""))
+
+        # 加载验证码AI设置
+        self.captcha_service_provider_combo.setCurrentText(self.settings.value("captcha_service_provider", "(未实现) Google Vision"))
+        encrypted_captcha_key = self.settings.value("captcha_api_key_encrypted", "")
+        if encrypted_captcha_key:
+            self.captcha_api_key_input.setText(decrypt_data(encrypted_captcha_key))
+        encrypted_captcha_secret = self.settings.value("captcha_api_secret_encrypted", "")
+        if encrypted_captcha_secret:
+            self.captcha_api_secret_input.setText(decrypt_data(encrypted_captcha_secret))
+        
+        self._update_api_key_visibility() # 确保基于加载的设置正确显示UI
 
     def _update_driver_path_visibility(self):
         """根据选择的浏览器类型，显示/隐藏对应的驱动路径输入行"""
@@ -227,6 +405,51 @@ class BasicSettingsPanel(QWidget):
         if is_edge:
             self.edgedriver_path_input.setEnabled(not self.use_bundled_edgedriver_checkbox.isChecked())
             self.edgedriver_path_button.setEnabled(not self.use_bundled_edgedriver_checkbox.isChecked())
+
+    def _update_api_key_visibility(self):
+        """根据选择的AI服务商，显示/隐藏对应的API Key输入行"""
+        provider = self.ai_service_provider_combo.currentText()
+        is_gemini = (provider == "Gemini")
+        is_openai = (provider == "OpenAI")
+
+        self.gemini_model_label.setVisible(is_gemini)
+        self.gemini_model_combo.setVisible(is_gemini)
+        self.gemini_api_key_label.setVisible(is_gemini)
+        self.gemini_api_key_input.setVisible(is_gemini)
+
+        self.openai_api_key_label.setVisible(is_openai)
+        self.openai_api_key_input.setVisible(is_openai)
+        self.openai_base_url_label.setVisible(is_openai)
+        self.openai_base_url_input.setVisible(is_openai)
+
+    def _handle_ai_provider_changed(self, provider_name):
+        self.settings.setValue("ai_service_provider", provider_name)
+        self._update_api_key_visibility()
+
+    def _handle_gemini_model_changed(self, model_name):
+        self.settings.setValue("gemini_model", model_name)
+
+    def _handle_ai_proxy_changed(self):
+        self.settings.setValue("ai_proxy_address", self.ai_proxy_input.text())
+
+    def _handle_openai_base_url_changed(self):
+        self.settings.setValue("openai_base_url", self.openai_base_url_input.text())
+
+    def _handle_captcha_settings_changed(self):
+        provider = self.captcha_service_provider_combo.currentText()
+        api_key = self.captcha_api_key_input.text()
+        api_secret = self.captcha_api_secret_input.text()
+
+        self.settings.setValue("captcha_service_provider", provider)
+        if api_key:
+            self.settings.setValue("captcha_api_key_encrypted", encrypt_data(api_key))
+        else:
+            self.settings.remove("captcha_api_key_encrypted")
+        
+        if api_secret:
+            self.settings.setValue("captcha_api_secret_encrypted", encrypt_data(api_secret))
+        else:
+            self.settings.remove("captcha_api_secret_encrypted")
 
     def _handle_browser_type_changed(self, browser_text):
         self._update_driver_path_visibility()
@@ -305,20 +528,68 @@ class BasicSettingsPanel(QWidget):
 
         self.browser_config_changed.emit(config)
 
+    def _toggle_proxy_input_visibility(self):
+        is_enabled = self.enable_proxy_checkbox.isChecked()
+        self.proxy_input_label.setVisible(is_enabled)
+        self.proxy_input.setVisible(is_enabled)
+        self.settings.setValue("proxy_enabled", is_enabled)
+        # 如果禁用了代理，则清空代理地址
+        if not is_enabled:
+            self.proxy_input.clear()
+            self.settings.setValue("proxy_address", "")
+
     def _handle_proxy_changed(self):
-        self.settings.setValue("proxy_address", self.proxy_input.text())
-        # 代理更改通常不需要立即通知主窗口，worker启动时会读取
+        # 只有在启用代理时，保存的地址才有意义
+        if self.enable_proxy_checkbox.isChecked():
+            self.settings.setValue("proxy_address", self.proxy_input.text())
+        else:
+            self.settings.setValue("proxy_address", "")
 
     def _handle_filling_param_changed(self):
         self.settings.setValue("num_threads", self.num_threads_spinbox.value())
         self.settings.setValue("num_fills", self.num_fills_spinbox.value())
         self.settings.setValue("headless_mode", self.headless_checkbox.isChecked())
+        self.settings.setValue("slow_mode", self.slow_mode_checkbox.isChecked())
+
+    def _handle_human_like_mode_changed(self):
+        is_enabled = self.human_like_mode_checkbox.isChecked()
+        self.settings.setValue("human_like_mode", is_enabled)
+        # TODO: 添加输入验证，确保是有效的浮点数
+        self.settings.setValue("human_like_min_delay", self.min_delay_input.text())
+        self.settings.setValue("human_like_max_delay", self.max_delay_input.text())
+        self._update_human_like_delay_visibility()
+
+    def _update_human_like_delay_visibility(self):
+        self.human_like_delay_widget.setVisible(self.human_like_mode_checkbox.isChecked())
 
     def _handle_theme_selection_changed(self, theme_name_cn):
         self._update_color_previews(theme_name_cn)
         if self.settings.value("theme") != theme_name_cn:
             self.settings.setValue("theme", theme_name_cn)
             self.theme_changed_signal.emit(theme_name_cn)
+
+    def _handle_api_key_changed(self):
+        sender = self.sender()
+        if sender == self.gemini_api_key_input:
+            key_name = "gemini_api_key_encrypted"
+            api_key = self.gemini_api_key_input.text()
+            provider_name = "Gemini"
+        elif sender == self.openai_api_key_input:
+            key_name = "openai_api_key_encrypted"
+            api_key = self.openai_api_key_input.text()
+            provider_name = "OpenAI"
+        else:
+            return
+
+        if api_key:
+            encrypted_key = encrypt_data(api_key)
+            self.settings.setValue(key_name, encrypted_key)
+            print(f"BasicSettingsPanel: {provider_name} API Key has been encrypted and saved.")
+        else:
+            self.settings.remove(key_name)
+            print(f"BasicSettingsPanel: {provider_name} API Key has been cleared.")
+
+
 
     def _update_color_previews(self, theme_name_cn):  # (保持不变)
         while self.color_preview_grid_layout.count():

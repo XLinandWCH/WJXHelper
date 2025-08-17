@@ -255,7 +255,8 @@ class FillingProcessWidget(QWidget):
                     base_user_data_dir_path=self.main_window_ref.base_user_data_dir_for_workers if hasattr(self.main_window_ref, 'base_user_data_dir_for_workers') else None, # 从MainWindow获取共享的用户数据目录基础路径，并增加检查
                     # --- 关键修改：传递共享字典和互斥锁给 Worker ---
                     shared_sequential_indices=self._shared_sequential_indices,
-                    sequential_indices_mutex=self._sequential_indices_mutex
+                    sequential_indices_mutex=self._sequential_indices_mutex,
+                    human_like_mode_config=self.basic_settings_cache.get("human_like_mode_config")
                 )
                 worker.progress_signal.connect(self._on_worker_progress)
                 worker.single_fill_finished_signal.connect(self._on_worker_single_fill_finished)
@@ -340,7 +341,7 @@ class FillingProcessWidget(QWidget):
                     final_bg_color = QColor(255, 200, 200) # Light red for error/fail
                 elif "成功" in status_lower or "已完成" in status_lower:
                     final_bg_color = QColor(200, 255, 200) # Light green for success/completed
-                elif "验证码" in status_lower:
+                elif "验证码" in status_lower or "手动操作" in status_lower:
                     final_bg_color = QColor(255, 230, 180) # Light orange/yellow for captcha
                 elif "正在停止" in status_lower or "已停止" in status_lower:
                     final_bg_color = QColor(220, 220, 220) # Light gray for stopped
@@ -404,6 +405,8 @@ class FillingProcessWidget(QWidget):
             status_text = "警告"
         elif current_msg_type_str.lower() == "captcha":
             status_text = "验证码"
+        elif current_msg_type_str.lower() == "captcha_failed":
+            status_text = "AI识别失败,请手动操作"
         # If globally paused, prepend the paused status
         if self.is_globally_paused and not status_text.startswith("已暂停"):
              status_text = f"已暂停 ({status_text})"
@@ -623,7 +626,7 @@ class FillingProcessWidget(QWidget):
             # Only attempt to stop and wait for workers that are actually running or started
             # Placeholder rows in table don't have worker objects in self.workers
             if isinstance(worker, QThread) and worker.isRunning():
-                worker.stop_worker() # Notify the Worker thread to stop
+                worker.is_running = False # Notify the Worker thread to stop
                 workers_to_wait.append(worker)
                 # Update the table status for these workers to 'Stopping...'
                 row_idx = self._find_row_for_worker(worker_id)

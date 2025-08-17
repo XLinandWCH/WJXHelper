@@ -513,7 +513,8 @@ class MainWindow(QMainWindow):
             self.top_nav_button_group.addButton(button);
             self.nav_buttons[panel_idx_attr] = button;
             nav_bar_h_layout.addWidget(button)
-        nav_bar_h_layout.addStretch(1);
+        nav_bar_h_layout.addStretch(1)
+
         main_v_layout.addWidget(self.nav_bar_widget)
         self.main_content_stack = QStackedWidget()
         self.questionnaire_setup_panel = QuestionnaireSetupWidget(self)
@@ -671,10 +672,17 @@ class MainWindow(QMainWindow):
             "browser_type": self.current_browser_type,  # 已是最新
             "driver_executable_path": self.current_driver_path,  # 已是最新
             "base_user_data_dir": self.base_user_data_dir_for_workers,  # 新增，传递给worker
-            "proxy": self.settings.value("proxy_address", ""),
+            "proxy": self.settings.value("proxy_address", "") if self.settings.value("proxy_enabled", False, type=bool) else None,
             "num_threads": int(self.settings.value("num_threads", 1)),
             "num_fills_total": int(self.settings.value("num_fills", 1)),
-            "headless": self.settings.value("headless_mode", True, type=bool)
+            "headless": self.settings.value("headless_mode", True, type=bool),
+            "slow_mode": self.settings.value("slow_mode", False, type=bool),
+            # --- 新增：读取并传递“拟人工”模式配置 ---
+            "human_like_mode_config": {
+                "enabled": self.settings.value("human_like_mode", False, type=bool),
+                "min_delay": float(self.settings.value("human_like_min_delay", "0")),
+                "max_delay": float(self.settings.value("human_like_max_delay", "1.5"))
+            }
         }
 
         if is_restricted_by_update:  # 如果因版本旧而受限

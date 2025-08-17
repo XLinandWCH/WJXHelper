@@ -87,3 +87,51 @@ def calculate_multiple_choices_from_percentages(percentage_list):
             selected_indices.append(i)
     return selected_indices
 
+
+import base64
+from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+
+# --- 加密/解密函数 ---
+# IMPORTANT: This is a simple obfuscation, not military-grade security.
+# The key is derived from a hardcoded string.
+_ENCRYPTION_KEY_SOURCE = b'a_hardcoded_secret_key_for_wjxhelper_encryption'
+_SALT = b'a_fixed_salt_value' # In a real-world scenario, salt should be random and stored.
+
+def _derive_key():
+    """Derives a key from the hardcoded source string."""
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=_SALT,
+        iterations=100000,
+    )
+    key = base64.urlsafe_b64encode(kdf.derive(_ENCRYPTION_KEY_SOURCE))
+    return key
+
+_KEY = _derive_key()
+_FERNET = Fernet(_KEY)
+
+def encrypt_data(data: str) -> str:
+    """Encrypts a string and returns a URL-safe base64 encoded string."""
+    if not data:
+        return ""
+    try:
+        encrypted_bytes = _FERNET.encrypt(data.encode('utf-8'))
+        return encrypted_bytes.decode('utf-8')
+    except Exception as e:
+        print(f"Encryption failed: {e}")
+        return "" # Return empty string on failure
+
+def decrypt_data(encrypted_data: str) -> str:
+    """Decrypts a string that was encrypted with encrypt_data."""
+    if not encrypted_data:
+        return ""
+    try:
+        decrypted_bytes = _FERNET.decrypt(encrypted_data.encode('utf-8'))
+        return decrypted_bytes.decode('utf-8')
+    except Exception as e:
+        # This can happen if the key is wrong, data is corrupted, or not encrypted
+        print(f"Decryption failed: {e}")
+        return "" # Return empty string on failure
