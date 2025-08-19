@@ -178,7 +178,7 @@ class BasicSettingsPanel(QWidget):
 
         # AI 服务商选择
         self.ai_service_provider_combo = QComboBox()
-        self.ai_service_provider_combo.addItems(["Gemini", "OpenAI"])
+        self.ai_service_provider_combo.addItems(["Gemini", "OpenAI", "LM Studio", "OpenRouter"])
         ai_layout.addRow("AI 服务商:", self.ai_service_provider_combo)
 
         # Gemini API Key 输入
@@ -214,6 +214,19 @@ class BasicSettingsPanel(QWidget):
         self.openai_base_url_input.setPlaceholderText("留空则为官方地址, LM Studio 示例: http://localhost:1234/v1")
         self.openai_base_url_label = QLabel("服务器地址 (Base URL):")
         ai_layout.addRow(self.openai_base_url_label, self.openai_base_url_input)
+
+        # OpenRouter API Key
+        self.openrouter_api_key_input = QLineEdit()
+        self.openrouter_api_key_input.setPlaceholderText("在此输入您的 OpenRouter API 密钥")
+        self.openrouter_api_key_input.setEchoMode(QLineEdit.Password)
+        self.openrouter_api_key_label = QLabel("OpenRouter API Key:")
+        ai_layout.addRow(self.openrouter_api_key_label, self.openrouter_api_key_input)
+
+        # OpenRouter Model
+        self.openrouter_model_input = QLineEdit()
+        self.openrouter_model_input.setPlaceholderText("例如: anthropic/claude-3-sonnet")
+        self.openrouter_model_label = QLabel("OpenRouter 模型:")
+        ai_layout.addRow(self.openrouter_model_label, self.openrouter_model_input)
 
         # AI Proxy Setting
         self.ai_proxy_input = QLineEdit()
@@ -293,6 +306,8 @@ class BasicSettingsPanel(QWidget):
         
         self.gemini_api_key_input.editingFinished.connect(self._handle_api_key_changed)
         self.openai_api_key_input.editingFinished.connect(self._handle_api_key_changed)
+        self.openrouter_api_key_input.editingFinished.connect(self._handle_api_key_changed)
+        self.openrouter_model_input.editingFinished.connect(self._handle_openrouter_model_changed)
         self.ai_service_provider_combo.currentTextChanged.connect(self._handle_ai_provider_changed)
         self.gemini_model_combo.currentTextChanged.connect(self._handle_gemini_model_changed)
         self.openai_base_url_input.editingFinished.connect(self._handle_openai_base_url_changed)
@@ -367,6 +382,13 @@ class BasicSettingsPanel(QWidget):
             decrypted_key = decrypt_data(encrypted_openai_key)
             self.openai_api_key_input.setText(decrypted_key)
 
+        encrypted_openrouter_key = self.settings.value("openrouter_api_key_encrypted", "")
+        if encrypted_openrouter_key:
+            decrypted_key = decrypt_data(encrypted_openrouter_key)
+            self.openrouter_api_key_input.setText(decrypted_key)
+
+        self.openrouter_model_input.setText(self.settings.value("openrouter_model", "anthropic/claude-3-sonnet"))
+
         # Load OpenAI Base URL
         self.openai_base_url_input.setText(self.settings.value("openai_base_url", ""))
 
@@ -411,6 +433,8 @@ class BasicSettingsPanel(QWidget):
         provider = self.ai_service_provider_combo.currentText()
         is_gemini = (provider == "Gemini")
         is_openai = (provider == "OpenAI")
+        is_lm_studio = (provider == "LM Studio")
+        is_openrouter = (provider == "OpenRouter")
 
         self.gemini_model_label.setVisible(is_gemini)
         self.gemini_model_combo.setVisible(is_gemini)
@@ -419,8 +443,13 @@ class BasicSettingsPanel(QWidget):
 
         self.openai_api_key_label.setVisible(is_openai)
         self.openai_api_key_input.setVisible(is_openai)
-        self.openai_base_url_label.setVisible(is_openai)
-        self.openai_base_url_input.setVisible(is_openai)
+        self.openai_base_url_label.setVisible(is_openai or is_lm_studio)
+        self.openai_base_url_input.setVisible(is_openai or is_lm_studio)
+
+        self.openrouter_api_key_label.setVisible(is_openrouter)
+        self.openrouter_api_key_input.setVisible(is_openrouter)
+        self.openrouter_model_label.setVisible(is_openrouter)
+        self.openrouter_model_input.setVisible(is_openrouter)
 
     def _handle_ai_provider_changed(self, provider_name):
         self.settings.setValue("ai_service_provider", provider_name)
@@ -428,6 +457,9 @@ class BasicSettingsPanel(QWidget):
 
     def _handle_gemini_model_changed(self, model_name):
         self.settings.setValue("gemini_model", model_name)
+
+    def _handle_openrouter_model_changed(self):
+        self.settings.setValue("openrouter_model", self.openrouter_model_input.text())
 
     def _handle_ai_proxy_changed(self):
         self.settings.setValue("ai_proxy_address", self.ai_proxy_input.text())
@@ -578,6 +610,10 @@ class BasicSettingsPanel(QWidget):
             key_name = "openai_api_key_encrypted"
             api_key = self.openai_api_key_input.text()
             provider_name = "OpenAI"
+        elif sender == self.openrouter_api_key_input:
+            key_name = "openrouter_api_key_encrypted"
+            api_key = self.openrouter_api_key_input.text()
+            provider_name = "OpenRouter"
         else:
             return
 

@@ -967,21 +967,30 @@ class QuestionnaireSetupWidget(QWidget):
             return
         
         settings = self.main_window_ref.settings
-        provider = settings.value("ai_service_provider", "Gemini")
+        provider_ui = settings.value("ai_service_provider", "Gemini")
+        provider_backend = provider_ui.lower()
         model_name = None
         base_url = None
-        if provider.lower() == 'gemini':
+        api_key_encrypted_key = f"{provider_backend}_api_key_encrypted"
+
+        if provider_ui == 'Gemini':
             model_name = settings.value("gemini_model", "gemini-2.5-pro")
-        elif provider.lower() == 'openai':
+        elif provider_ui == 'OpenAI':
             base_url = settings.value("openai_base_url", "")
+        elif provider_ui == 'LM Studio':
+            provider_backend = 'openai' # LM Studio uses OpenAI compatible API
+            base_url = settings.value("openai_base_url", "")
+            api_key_encrypted_key = "openai_api_key_encrypted" # Reuse OpenAI key field, though it might be empty
+        elif provider_ui == 'OpenRouter':
+            model_name = settings.value("openrouter_model", "anthropic/claude-3-sonnet")
 
-        api_key_encrypted = settings.value(f"{provider.lower()}_api_key_encrypted", "")
+        api_key_encrypted = settings.value(api_key_encrypted_key, "")
 
-        if not api_key_encrypted:
-            QMessageBox.warning(self, "AI 助手", f"尚未配置 {provider} 的 API Key。\n请前往“程序设置”页面进行配置。")
+        if not api_key_encrypted and provider_ui != 'LM Studio':
+            QMessageBox.warning(self, "AI 助手", f"尚未配置 {provider_ui} 的 API Key。\n请前往“程序设置”页面进行配置。")
             return
 
-        api_key = decrypt_data(api_key_encrypted)
+        api_key = decrypt_data(api_key_encrypted) if api_key_encrypted else ""
         
         # Get AI-specific proxy settings
         proxy = settings.value("ai_proxy_address", "")
@@ -996,7 +1005,7 @@ class QuestionnaireSetupWidget(QWidget):
         self.ai_prompt_input.setEnabled(False)
 
         # 启动AI线程
-        self.ai_thread = AIConfigThread(provider, api_key, user_prompt, self.parsed_data, self.ai_chat_log, model_name, proxy if proxy else None, base_url if base_url else None)
+        self.ai_thread = AIConfigThread(provider_backend, api_key, user_prompt, self.parsed_data, self.ai_chat_log, model_name, proxy if proxy else None, base_url if base_url else None)
         self.ai_thread.finished_signal.connect(self._on_ai_finished)
         self.ai_thread.start()
 
