@@ -1,6 +1,6 @@
 # main_app.py
 import sys
-import os
+import os 
 import traceback
 import json
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
