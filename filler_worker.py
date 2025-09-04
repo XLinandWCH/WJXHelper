@@ -354,6 +354,23 @@ class FillerWorker(QThread):
             self.is_running = False
             return False
 
+    def pause_worker(self):
+        """暂停工作线程"""
+        if self.is_running:
+            self._emit_progress("info", f"线程 {self.worker_id} 已暂停。")
+            self.is_paused = True
+
+    def resume_worker(self):
+        """恢复工作线程"""
+        if self.is_running:
+            self.is_paused = False
+            self._emit_progress("info", f"线程 {self.worker_id} 已恢复。")
+    
+    def stop_worker(self):
+        """停止工作线程"""
+        self._emit_progress("info", f"线程 {self.worker_id} 接收到停止信号。")
+        self.is_running = False
+    
     def _cleanup_user_data_dir(self):
         """
         清理 worker 创建的临时用户数据目录。
@@ -819,7 +836,7 @@ class FillerWorker(QThread):
                         # 在 WJXFillLogic 中，当AI处理失败时，它会返回 False
                         # Worker 在这里捕获这个状态，并暂停自己
                         self._emit_progress("captcha_failed", f"线程 {self.worker_id}: AI验证码处理失败，线程暂停等待人工操作。")
-                        self.pause() # 暂停当前线程
+                        self.pause_worker() # 暂停当前线程
                         # 可以在这里持续循环等待，直到 is_paused 变为 False
                         while self.is_paused and self.is_running:
                             time.sleep(0.5)
@@ -882,53 +899,120 @@ class FillerWorker(QThread):
 
                 # 滑块验证
                 try:
-                    slider_area_xpath = '//*[@id="nc_1__scale_text"]/span | //div[@id="nc_1_n1t"]'
-                    WebDriverWait(self.driver, 7).until(EC.presence_of_element_located((By.XPATH, slider_area_xpath)))
-                    slider_button_xpath = '//*[@id="nc_1_n1z"]'
-                    slider_button_el = self.driver.find_element(By.XPATH, slider_button_xpath)
-                    self._emit_progress("captcha", f"线程 {self.worker_id}: 检测到滑块验证...")
+                    slider_text_span_xpath = '//*[@id="nc_1__scale_text"]/span[contains(text(),"请按住滑块")] | //div[@id="nc_1_n1t"]'
+                    WebDriverWait(self.driver, 7).until(
+                        EC.visibility_of_element_located((By.XPATH, slider_text_span_xpath))
+                    )
+                    slider_button = self.driver.find_element(By.XPATH, '//*[@id="nc_1_n1z"]')
+                    self._emit_progress("captcha", f"线程 {self.worker_id}: 检测到滑块验证，尝试拖动...")
                     
-                    total_drag_target = random.randint(265, 295)
-                    actions_slider = ActionChains(self.driver)
-                    actions_slider.click_and_hold(slider_button_el).perform()
+                    # 使用更高效的滑块拖动方法（从WJXHelper-main提取）
+                    drag_distance = random.randint(258, 270)
+                    actions = ActionChains(self.driver)
+                    actions.click_and_hold(slider_button)
+                    num_segments = random.randint(3, 5)
+                    total_moved = 0
                     
-                    # 模拟拖动
-                    num_segments = random.randint(5, 10)
                     for i in range(num_segments):
                         if not self.is_running: break
-                        ratio = (i + 1) / num_segments
-                        target_x = total_drag_target * ratio
-                        current_x = (i / num_segments) * total_drag_target
-                        move_x = target_x - current_x + random.uniform(-3, 3)
-                        move_y = random.uniform(-5, 5)
-                        actions_slider.move_by_offset(xoffset=move_x, yoffset=move_y)
-                        actions_slider.pause(random.uniform(0.05, 0.2))
-                    
-                    actions_slider.release().perform()
-                    self._emit_progress("info", f"线程 {self.worker_id}: 滑块验证尝试完成。")
-                    time.sleep(3) # 等待验证结果
+                        if total_moved >= drag_distance: break
+                        if i == num_segments - 1:
+                            segment_dist = drag_distance - total_moved + random.randint(5, 15)
+                        else:
+                            segment_dist = drag_distance / num_segments + random.randint(-10, 10)
+                        segment_dist = max(1, int(segment_dist))
+                        if total_moved + segment_dist > drag_distance * 1.2: segment_dist = drag_distance * 1.2 - total_moved
+                        if segment_dist <= 0: continue
+                        actions.move_by_offset(segment_dist, random.randint(-6, 6))
+                        actions.pause(random.uniform(0.03, (0.2 if i < num_segments - 1 else 0.08)))
+                        total_moved += segment_dist
+                        
+                    actions.release().perform()
+                    self._emit_progress("info", f"线程 {self.worker_id}: 滑块拖动完成，总距离约: {total_moved}px。")
+                    time.sleep(random.uniform(2.0, 3.5))
                 except (TimeoutException, NoSuchElementException):
                     self._emit_progress("debug", f"线程 {self.worker_id}: 未检测到滑块验证码。")
                 except Exception as e_slider:
                     self._emit_progress("warn", f"线程 {self.worker_id}: 处理滑块验证时发生错误: {e_slider}")
 
-                # 检查结果
+                # 检查结果 - 使用更全面的成功判断逻辑（从WJXHelper-main提取）
                 time.sleep(random.uniform(2.5, 4.0))
+                
+                # 等待页面结果
+                try:
+                    WebDriverWait(self.driver, 10).until(
+                        EC.any_of(
+                            EC.url_contains("finished"), EC.url_contains("result"), EC.url_contains("completed"),
+                            EC.presence_of_element_located((By.XPATH,
+                                                            "//*[contains(text(),'提交成功') or contains(text(),'感谢您') or contains(text(),'已完成')]")),
+                            EC.presence_of_element_located(
+                                (By.XPATH, "//*[contains(text(),'提交失败') or contains(text(),'错误')]"))
+                        )
+                    )
+                except TimeoutException:
+                    self._emit_progress("warn", f"线程 {self.worker_id}: 等待最终结果超时，将基于当前页面状态判断。")
+                
                 final_url = self.driver.current_url
-                if "Finish" in final_url or "finish" in final_url or "finished" in final_url or "completemobile" in final_url:
-                    current_fill_success = True
-                    final_message_or_url = final_url
+                final_title = self.driver.title.lower() if self.driver.title else ""
+                page_source_lower = ""
+                
+                try:
+                    page_source_lower = self.driver.page_source.lower()
+                except:
+                    self._emit_progress("warn", f"线程 {self.worker_id}: 无法获取最终页面的 page_source。")
+                
+                success_keywords_in_url = ["finished", "result", "complete", "thank", "success", "finish", "completemobile"]
+                success_keywords_in_title = ["感谢", "完成", "成功", "提交成功", "谢谢"]
+                success_keywords_in_page = ["提交成功", "感谢您", "问卷已提交", "已完成", "thank you", "completed",
+                                            "submitted successfully"]
+                error_keywords_in_page = ["提交失败", "验证码错误", "必填项", "网络超时", "重新提交", "滑块验证失败",
+                                          "frequencylimit", "error", "fail", "invalid", "请稍后重试", "系统繁忙"]
+                
+                submission_successful = False
+                if any(keyword in page_source_lower for keyword in error_keywords_in_page):
+                    submission_successful = False
+                    fail_reason = "页面包含明确的错误或失败提示。"
+                    try:
+                        error_elements = self.driver.find_elements(By.XPATH,
+                                                               "//*[self::p or self::span or self::div][contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '失败') or contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '错误') or contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '验证')]")
+                        if error_elements:
+                            for err_el in error_elements:
+                                if err_el.is_displayed() and err_el.text.strip():
+                                    fail_reason += f" 页面提示: {err_el.text.strip()[:100]}"
+                                    break
+                    except:
+                        pass
+                    final_message_or_url = f"线程 {self.worker_id}: {fail_reason} 当前URL: {final_url}"
+                else:
+                    initial_url = self.url  # 确保有初始URL引用
+                    url_changed_significantly = initial_url.split('?')[0] != final_url.split('?')[0]
+                    url_has_success_keyword = any(keyword in final_url.lower() for keyword in success_keywords_in_url)
+                    title_has_success_keyword = any(keyword in final_title for keyword in success_keywords_in_title)
+                    page_has_success_keyword = any(keyword in page_source_lower for keyword in success_keywords_in_page)
+                    
+                    if url_changed_significantly and url_has_success_keyword:
+                        submission_successful = True
+                        final_message_or_url = f"线程 {self.worker_id}: 成功提交，URL跳转至成功页: {final_url}"
+                    elif title_has_success_keyword:
+                        submission_successful = True
+                        final_message_or_url = f"线程 {self.worker_id}: 成功提交，页面标题为: '{self.driver.title}'。URL: {final_url}"
+                    elif page_has_success_keyword:
+                        submission_successful = True
+                        final_message_or_url = f"线程 {self.worker_id}: 成功提交，页面包含成功标识。URL: {final_url}"
+                    elif url_changed_significantly and not any(
+                            keyword in final_url.lower() for keyword in ["error", "fail", "login", "code="]):
+                        submission_successful = True
+                        final_message_or_url = f"线程 {self.worker_id}: 提交后URL发生变化且无明显错误: {final_url}"
+                    else:
+                        submission_successful = False
+                        final_message_or_url = f"线程 {self.worker_id}: 提交后状态未知或无明确成功标识。URL: {final_url}, 标题: '{self.driver.title}'"
+                
+                current_fill_success = submission_successful
+                
+                if current_fill_success:
                     self._emit_progress("success_once", f"线程 {self.worker_id}: 第 {self.fills_completed_by_this_worker + 1} 次填写成功。")
                 else:
-                    # 检查是否有错误提示
-                    try:
-                        error_element = self.driver.find_element(By.XPATH, "//*[contains(@class, 'w-error-v2') or contains(@class, 'w-tip-error')]")
-                        error_text = error_element.text.strip() if error_element.text else "未知提交错误"
-                        final_message_or_url = f"线程 {self.worker_id}: 提交失败: {error_text}"
-                        self._emit_progress("error", final_message_or_url)
-                    except (NoSuchElementException, TimeoutException):
-                        final_message_or_url = f"线程 {self.worker_id}: 提交后页面未跳转到成功页，且未找到明确错误提示。URL: {final_url}"
-                        self._emit_progress("warn", final_message_or_url)
+                    self._emit_progress("error", final_message_or_url)
             
             except InterruptedError:
                 final_message_or_url = f"线程 {self.worker_id}: 用户中止操作"
